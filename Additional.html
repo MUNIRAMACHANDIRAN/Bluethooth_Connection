@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Month-wise Crop Subtotal Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.3.1/docx.min.js"></script>
+<style>
+body { font-family: Arial; margin: 20px; background: #f7f7f7; }
+h2 { color: #2e7d32; }
+input[type=file], select, button { padding: 6px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
+button { background: #4CAF50; color: white; cursor: pointer; border: none; }
+button:hover { background: #43a047; }
+table { border-collapse: collapse; width: 100%; background: #fff; margin-top: 15px; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+th { background: #4CAF50; color: white; }
+.subtotal { background: #e8f5e9; font-weight: bold; }
+.monthtotal { background: #b2dfdb; font-weight: bold; }
+.grandtotal { background: #80cbc4; font-weight: bold; }
+.total-merged { text-align:center; font-weight:bold; }
+</style>
+</head>
+<body>
+
+<h2>📊 Month-wise Crop Subtotal Report</h2>
+
+<input type="file" id="excelFile" accept=".xlsx, .xls">
+<select id="monthSelect" onchange="renderReport()">
+  <option value="">-- Select Month --</option>
+</select>
+<button onclick="exportOptions()">Export</button>
+
+<h3>📋 Report Table</h3>
+<table id="reportTable">
+  <thead>
+    <tr>
+      <th>Sl.No</th>
+      <th>Survey No</th>
+      <th>SubDivision</th>
+      <th>Month</th>
+      <th>Crop</th>
+      <th>Area</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+let data = [];
+let columnMap = {};
+
+document.getElementById('excelFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(event){
+    const workbook = XLSX.read(event.target.result, { type: 'binary' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval:''});
+    data = sheet;
+
+    if(data.length > 0){
+      const keys = Object.keys(data[0]);
+      columnMap = {
+        SlNo: keys.find(k=>k.toLowerCase().replace(/\s/g,'').includes('sl')) || keys[0],
+        SurveyNo: keys.find(k=>k.toLowerCase().replace(/\s/g,'').includes('survey')) || keys[1],
+        SubDivision: keys.find(k=>k.toLowerCase().replace(/\s/g,'').includes('sub')) || keys[2],
+        Month: keys.find(k=>k.toLowerCase().replace(/\s/g,'').includes('month')) || keys[3],
+        Crop: keys.find(k=>k.toLowerCase().replace(/\s/g,'').includes('crop')) || keys[4],
+        Area: keys.find(k=>k.toLowerCase().replace(/\s/g,'').includes('area')) || keys[5]
+      };
+    }
+
+    populateMonthSelect();
+    renderReport();
+  };
+  reader.readAsBinaryString(file);
+});
+
+function populateMonthSelect(){
+  const monthSelect = document.getElementById('monthSelect');
+  monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+  const months = [...new Set(data.map(r=>r[columnMap.Month]))].sort((a,b)=>a-b);
+  months.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m;
+    monthSelect.appendChild(opt);
+  });
+  const allOpt = document.createElement('option');
+  allOpt.value = 'all';
+  allOpt.textContent = 'All Months';
+  monthSelect.appendChild(allOpt);
+}
+
+function renderReport(){
+  const tbody = document.querySelector("#reportTable tbody");
+  tbody.innerHTML = "";
+
+  const selectedMonth = document.getElementById('monthSelect').value;
+  const filteredData = (selectedMonth && selectedMonth!=='all') ? data.filter(r=>r[columnMap.Month]==selectedMonth) : data;
+
+  const grouped = {};
+  filteredData.forEach(row=>{
+    const month = row[columnMap.Month];
+    const crop = row[columnMap.Crop];
+    const key = month + "_" + crop;
+    if(!grouped[key]) grouped[key] = [];
+    grouped[key].push(row);
+  });
+
+  const sortedKeys = Object.keys(grouped).sort((a,b)=>{
+    const [m1, c1]=a.split("_");
+    const [m2, c2]=b.split("_");
+    if(m1!=m2) return m1-m2;
+    return c1.localeCompare(c2);
+  });
+
+  let slCounter = 1;
+  let grandTotal = 0;
+  let currentMonth = null;
+  let monthTotal = 0;
+
+  sortedKeys.forEach(key=>{
+    const rows = grouped[key];
+    const month = rows[0][columnMap.Month];
+
+    if(selectedMonth==='all' && month!==currentMonth){
+      if(currentMonth!==null){
+        const trMonth = document.createElement('tr');
+        trMonth.className = 'monthtotal';
+        trMonth.innerHTML = `<td colspan="6" class="total-merged">Total for Month ${currentMonth}: ${monthTotal.toFixed(2)}</td>`;
+        tbody.appendChild(trMonth);
+        monthTotal = 0;
+      }
+      currentMonth = month;
+    }
+
+    let subtotal = 0;
+    rows.forEach(r=>{
+      const areaStr = r[columnMap.Area].toString();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${slCounter++}</td>
+        <td>${r[columnMap.SurveyNo] || ''}</td>
+        <td>${r[columnMap.SubDivision] || ''}</td>
+        <td>${r[columnMap.Month] || ''}</td>
+        <td>${r[columnMap.Crop] || ''}</td>
+        <td>${areaStr}</td>`;
+      tbody.appendChild(tr);
+
+      const num = parseFloat(areaStr.split('.').slice(0,2).join('.')) || 0;
+      subtotal += num;
+      monthTotal += num;
+      grandTotal += num;
+    });
+
+    const trSub = document.createElement('tr');
+    trSub.className = 'subtotal';
+    trSub.innerHTML = `<td colspan="6" class="total-merged">${rows[0][columnMap.Crop]} Total: ${subtotal.toFixed(2)}</td>`;
+    tbody.appendChild(trSub);
+  });
+
+  if(selectedMonth==='all' && currentMonth!==null){
+    const trMonth = document.createElement('tr');
+    trMonth.className = 'monthtotal';
+    trMonth.innerHTML = `<td colspan="6" class="total-merged">Total for Month ${currentMonth}: ${monthTotal.toFixed(2)}</td>`;
+    tbody.appendChild(trMonth);
+  }
+
+  const trGrand = document.createElement('tr');
+  trGrand.className = 'grandtotal';
+  trGrand.innerHTML = `<td colspan="6" class="total-merged">Grand Total: ${grandTotal.toFixed(2)}</td>`;
+  tbody.appendChild(trGrand);
+}
+
+// Export options
+function exportOptions(){
+  const format = prompt("Enter export format: csv, pdf, xlsx, xls, word").toLowerCase();
+  if(!format) return;
+  if(format==='csv') exportCSV();
+  else if(format==='pdf') exportPDF();
+  else if(format==='xlsx'||format==='xls') exportExcel();
+  else if(format==='word') exportWord();
+  else alert("Invalid format!");
+}
+
+function exportCSV(){
+  let csv = [];
+  document.querySelectorAll("#reportTable tr").forEach(tr=>{
+    const row = Array.from(tr.querySelectorAll("th,td")).map(td=>td.textContent.replace(/,/g,''));
+    csv.push(row.join(","));
+  });
+  const blob = new Blob([csv.join("\n")], {type: "text/csv;charset=utf-8"});
+  saveAs(blob,"Report.csv");
+}
+
+function exportExcel(){
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.table_to_sheet(document.getElementById('reportTable'));
+  XLSX.utils.book_append_sheet(wb, ws, "Report");
+  XLSX.writeFile(wb, "Report.xlsx");
+}
+
+function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(14);
+  doc.text("Month-wise Crop Subtotal Report", 14, 15);
+  const rows = [];
+  document.querySelectorAll("#reportTable tbody tr").forEach(tr=>{
+    const cols = tr.querySelectorAll("td");
+    rows.push(Array.from(cols).map(td=>td.textContent));
+  });
+  doc.autoTable({ head: [["Sl.No","Survey No","SubDivision","Month","Crop","Area"]], body: rows, startY:25 });
+  doc.save("Report.pdf");
+}
+
+function exportWord(){
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } = docx;
+  const doc = new Document();
+  const tableRows = [];
+  document.querySelectorAll("#reportTable tr").forEach(tr=>{
+    const cells = Array.from(tr.querySelectorAll("th,td")).map(td=>new TableCell({children:[new Paragraph(td.textContent)]}));
+    tableRows.push(new TableRow({children: cells}));
+  });
+  const table = new Table({rows: tableRows});
+  doc.addSection({children:[table]});
+  Packer.toBlob(doc).then(blob=>saveAs(blob,"Report.docx"));
+}
+</script>
+
+</body>
+</html>

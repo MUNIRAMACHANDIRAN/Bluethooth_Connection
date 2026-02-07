@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crop Data Entry — Offline HTML/JS</title>
+  <style>
+    /* Font: try local Suntommy first, then fallback */
+    @font-face{font-family:"SuntommyLocal";src: local('Suntommy'), local('Suntommy.ttf'), url('file:///C:/Windows/Fonts/Suntommy.ttf') format('truetype');}
+    :root{--bg:#f5f7fb;--card:#fff;--muted:#6b7280;--accent:#0f766e}
+    body{font-family:SuntommyLocal,Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:var(--bg);color:#111}
+    header{background:#0b74a6;color:#fff;padding:10px 14px;display:flex;align-items:center;gap:16px}
+    .brand{font-weight:700;font-size:18px}
+    .menubar{display:flex;gap:8px}
+    .menu{position:relative}
+    .menu>button{background:transparent;border:0;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer}
+    .menu>button:hover{background:rgba(255,255,255,0.08)}
+    .dropdown{position:absolute;top:36px;left:0;background:var(--card);color:#111;border-radius:8px;box-shadow:0 6px 20px rgba(16,24,40,0.08);min-width:220px;padding:8px;display:none;z-index:50}
+    .dropdown button{display:block;width:100%;text-align:left;padding:8px;border:0;background:transparent;border-radius:6px;cursor:pointer}
+    .dropdown button:hover{background:#f3f4f6}
+    main{padding:18px;display:grid;grid-template-columns:420px 1fr;gap:18px}
+    .card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 1px 0 rgba(0,0,0,0.04)}
+    .panel-title{font-weight:600;margin-bottom:10px}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:10px}
+    input[type=text],input[type=number],select,textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #e6e9ef;margin-top:6px;font-size:14px}
+    .actions{display:flex;gap:8px;margin-top:12px}
+    .btn{padding:8px 12px;border:0;border-radius:8px;cursor:pointer}
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.ghost{background:transparent;border:1px solid #e6e9ef}
+    #form-area{max-height:66vh;overflow:auto;padding-right:6px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:6px;border-bottom:1px solid #eef2f7;text-align:left}
+    .small{font-size:12px;color:var(--muted)}
+    footer{padding:10px;font-size:13px;color:var(--muted)}
+    .notice{background:#fffbeb;border:1px solid #fcefc7;padding:8px;border-radius:8px;color:#92400e}
+    .table-wrapper{max-height:44vh;overflow:auto}
+    .totals{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+    .totcard{background:#fafafa;padding:10px;border-radius:8px;border:1px solid #eef2f7;min-width:180px}
+    .right{float:right}
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Crop Data Entry</div>
+    <nav class="menubar">
+      <div class="menu">
+        <button onclick="toggleMenu(this)">File ▾</button>
+        <div class="dropdown">
+          <button onclick="newEntry()">New Entry</button>
+          <button onclick="exportToExcel()">Export → Excel (CropData.xlsx)</button>
+          <button onclick="exportToSQL()">Export → SQL (CropData.sql)</button>
+          <button onclick="importExcelPrompt()">Import Excel/CSV</button>
+          <button onclick="downloadDBBackup()">Download DB Backup (JSON)</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button onclick="toggleMenu(this)">Edit ▾</button>
+        <div class="dropdown">
+          <button onclick="showEntries()">Show All Entries</button>
+          <button onclick="clearAllConfirm()">Clear All Entries</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button onclick="toggleMenu(this)">Tools ▾</button>
+        <div class="dropdown">
+          <button onclick="openSchemaModal()">Paste sample / Generate Form</button>
+          <button onclick="openSettings()">Settings</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button onclick="toggleMenu(this)">About ▾</button>
+        <div class="dropdown">
+          <div style="padding:8px;max-width:300px">
+            <div style="font-weight:600">CropData HTML/JS</div>
+            <div class="small">Offline data-entry with IndexedDB. Save/export anytime.</div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="panel-title">Form builder & Controls</div>
+      <div class="hint small">Paste header row (comma separated) to regenerate form — or use default.
+      </div>
+      <label>Paste header row</label>
+      <textarea id="schema-input" rows="2" placeholder="Sl.No,Survey No,SubDivision,Month,Crop,Area"></textarea>
+      <div class="actions">
+        <button class="btn primary" onclick="generateFormFromSchema()">Generate Form</button>
+        <button class="btn ghost" onclick="useDefaultSchema()">Use Default</button>
+      </div>
+
+      <hr style="margin:12px 0">
+
+      <div class="small">Quick actions</div>
+      <div class="actions" style="margin-top:8px">
+        <button class="btn" onclick="newEntry()">New Entry</button>
+        <button class="btn" onclick="showEntries()">Show Entries</button>
+        <button class="btn" onclick="importExcelPrompt()">Import</button>
+        <button class="btn" onclick="exportToExcel()">Export Excel</button>
+      </div>
+
+      <hr style="margin:12px 0">
+      <div class="notice">Data is stored locally in this browser using IndexedDB. Use Export to create files you can move between devices.</div>
+    </section>
+
+    <section class="card">
+      <div class="panel-title">Data Entry</div>
+      <div id="form-area"></div>
+
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" id="save-btn" onclick="saveEntry()">Save Entry</button>
+        <button class="btn ghost" onclick="saveAndNew()">Save & New</button>
+        <button class="btn" onclick="exportToExcel()">Export Excel</button>
+      </div>
+
+      <hr style="margin:12px 0">
+
+      <div id="table-area"></div>
+
+      <div id="totals-area" style="margin-top:12px"></div>
+    </section>
+  </main>
+
+  <footer>
+    Tip: open this HTML file in your browser. If font doesn't display, place <strong>Suntommy.ttf</strong> in the same folder as this file or install it in Windows Fonts.
+  </footer>
+
+  <input type="file" id="file-input" style="display:none" accept=".xlsx,.xls,.csv" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    // DB and schema
+    const DB_NAME = 'crop_data_db_v1';
+    const STORE = 'entries';
+    let db;
+    let currentSchema = ['Sl.No','Survey No','SubDivision','Month','Crop','Area'];
+    const cropOptions = ["தென்னெய்","நெல்","கரும்பு","பருப்பு","சோளம்","மக்காச்சோளம்","வேர்க்கடலை"];
+
+    // IndexedDB init
+    function initDB(){
+      return new Promise((res,rej)=>{
+        const r = indexedDB.open(DB_NAME,1);
+        r.onupgradeneeded = (e)=>{
+          const idb = e.target.result;
+          if(!idb.objectStoreNames.contains(STORE)) idb.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});
+        }
+        r.onsuccess = ()=>{ db = r.result; res(db); }
+        r.onerror = (e)=> rej(e);
+      })
+    }
+
+    async function addEntry(obj){ await initDB(); return new Promise((res,rej)=>{ const tx = db.transaction(STORE,'readwrite'); const st = tx.objectStore(STORE); const req = st.add(obj); req.onsuccess = ()=> res(req.result); req.onerror = (e)=> rej(e); }); }
+    async function getAllEntries(){ await initDB(); return new Promise((res,rej)=>{ const tx = db.transaction(STORE,'readonly'); const st = tx.objectStore(STORE); const r = st.getAll(); r.onsuccess = ()=> res(r.result); r.onerror = (e)=> rej(e); }); }
+    async function putEntry(obj){ await initDB(); return new Promise((res,rej)=>{ const tx = db.transaction(STORE,'readwrite'); const st = tx.objectStore(STORE); const r = st.put(obj); r.onsuccess = ()=> res(r.result); r.onerror = (e)=> rej(e); }); }
+    async function deleteEntryById(id){ await initDB(); return new Promise((res,rej)=>{ const tx = db.transaction(STORE,'readwrite'); const st = tx.objectStore(STORE); const r = st.delete(Number(id)); r.onsuccess = ()=> res(); r.onerror = (e)=> rej(e); }); }
+    async function clearAll(){ await initDB(); return new Promise((res,rej)=>{ const tx = db.transaction(STORE,'readwrite'); const st = tx.objectStore(STORE); const r = st.clear(); r.onsuccess = ()=> res(); r.onerror = (e)=> rej(e); }); }
+
+    // Build form
+    function useDefaultSchema(){ currentSchema = ['Sl.No','Survey No','SubDivision','Month','Crop','Area']; buildForm(currentSchema); }
+    function generateFormFromSchema(){ const raw = document.getElementById('schema-input').value.trim(); if(!raw) return alert('Paste header row or use default'); const parts = raw.split(/,|	|;/).map(s=>s.trim()).filter(Boolean); if(parts.length===0) return alert('No headers parsed'); currentSchema = parts; buildForm(currentSchema); }
+
+    function buildForm(fields){
+      const area = document.getElementById('form-area'); area.innerHTML='';
+      const form = document.createElement('div'); form.id='data-form';
+      fields.forEach(f=>{
+        const wrapper = document.createElement('div');
+        const label = document.createElement('label'); label.textContent = f;
+        if(f==='Sl.No'){
+          const input = document.createElement('input'); input.type='number'; input.name=f; input.id='field-'+f; input.disabled = true; input.value = '';
+          wrapper.appendChild(label); wrapper.appendChild(input);
+        } else if(f==='Month'){
+          const select = document.createElement('select'); select.id='field-'+f; select.name=f;
+          const opt = document.createElement('option'); opt.value=''; opt.textContent='--Select--'; select.appendChild(opt);
+          for(let i=1;i<=12;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i; select.appendChild(o); }
+          wrapper.appendChild(label); wrapper.appendChild(select);
+        } else if(f==='Crop'){
+          const select = document.createElement('select'); select.id='field-'+f; select.name=f; const empty=document.createElement('option'); empty.value=''; empty.textContent='--Select Crop--'; select.appendChild(empty);
+          cropOptions.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; select.appendChild(o); });
+          wrapper.appendChild(label); wrapper.appendChild(select);
+        } else if(f==='Area'){
+          const input = document.createElement('input'); input.type='number'; input.step='0.01'; input.min='0'; input.id='field-'+f; input.placeholder='e.g. 0.05'; wrapper.appendChild(label); wrapper.appendChild(input);
+        } else {
+          const input = document.createElement('input'); input.type='text'; input.id='field-'+f; input.placeholder=f; wrapper.appendChild(label); wrapper.appendChild(input);
+        }
+        form.appendChild(wrapper);
+      });
+      area.appendChild(form);
+      // focus first editable
+      setTimeout(()=>{ const el = document.querySelector('#data-form input:not([disabled]), #data-form select'); if(el) el.focus(); },50);
+      renderTablePlaceholder();
+    }
+
+    function renderTablePlaceholder(){ document.getElementById('table-area').innerHTML = '<div class="small">No entries shown. Click Save to add entries, and Show Entries to view the list.</div>'; document.getElementById('totals-area').innerHTML=''; }
+
+    // Save actions
+    async function saveEntry(){ const form = document.getElementById('data-form'); if(!form) return alert('Generate the form first');
+      // prepare object
+      const data = {};
+      currentSchema.forEach(k=>{
+        const el = document.getElementById('field-'+k);
+        data[k] = el? (el.value||'') : '';
+      });
+      // auto Sl.No when adding new
+      if(!data['Sl.No'] || data['Sl.No']===''){
+        const all = await getAllEntries();
+        data['Sl.No'] = (all.length+1).toString();
+      }
+      data._created = new Date().toISOString();
+      await addEntry(data);
+      alert('Saved ✔');
+      showEntries();
+    }
+
+    async function saveAndNew(){ await saveEntry(); // clear editable fields except Sl.No will auto increment next time
+      currentSchema.forEach(k=>{ const el=document.getElementById('field-'+k); if(el && !el.disabled) el.value=''; }); document.querySelector('#data-form input:not([disabled]), #data-form select').focus(); }
+
+    // Show entries and live totals
+    async function showEntries(){ const rows = await getAllEntries(); const ta = document.getElementById('table-area'); if(rows.length===0){ ta.innerHTML='<div class="small">No entries yet.</div>'; document.getElementById('totals-area').innerHTML=''; return; }
+      // build table
+      let html = '<div class="table-wrapper"><table><thead><tr>';
+      html += '<th>ID</th>';
+      const keys = Object.keys(rows[0]).filter(k=>k!=='id');
+      keys.forEach(h=> html += '<th>' + h + '</th>');
+      html += '<th>Actions</th>';
+      html += '</tr></thead><tbody>';
+      rows.forEach(r=>{
+        html += '<tr>';
+        html += '<td>' + (r.id||'') + '</td>';
+        keys.forEach(h=> html += '<td>' + (r[h]!==undefined? r[h] : '') + '</td>');
+        html += `<td><button onclick="editEntry(${r.id})">Edit</button> <button onclick="removeEntry(${r.id})">Delete</button></td>`;
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      ta.innerHTML = html;
+      renderTotals(rows);
+    }
+
+    function renderTotals(rows){ // crop-wise and month-wise totals (Area summed)
+      const cropTotals = {};
+      const monthTotals = {};
+      rows.forEach(r=>{
+        const crop = r['Crop'] || 'Unknown';
+        const month = r['Month'] || '0';
+        const area = parseFloat((r['Area']||0)) || 0;
+        cropTotals[crop] = (cropTotals[crop]||0) + area;
+        monthTotals[month] = (monthTotals[month]||0) + area;
+      });
+      // build HTML
+      let html = '<div class="totals">';
+      html += '<div class="totcard"><div style="font-weight:600">Crop-wise Totals</div>';
+      Object.keys(cropTotals).forEach(c=> html += `<div>${c}: <strong>${cropTotals[c].toFixed(2)}</strong></div>`);
+      html += '</div>';
+      html += '<div class="totcard"><div style="font-weight:600">Month-wise Totals</div>';
+      Object.keys(monthTotals).sort((a,b)=>Number(a)-Number(b)).forEach(m=>{ if(m==='') return; html += `<div>Month ${m}: <strong>${monthTotals[m].toFixed(2)}</strong></div>`; });
+      html += '</div>';
+      html += '</div>';
+      document.getElementById('totals-area').innerHTML = html;
+    }
+
+    // Edit / Delete
+    function editEntry(id){ initDB().then(()=>{ const tx = db.transaction(STORE,'readonly'); const st = tx.objectStore(STORE); const r = st.get(Number(id)); r.onsuccess = ()=>{ const val = r.result; if(!val) return alert('Not found'); // build form if missing
+        if(!document.getElementById('data-form')) buildForm(Object.keys(val).filter(k=>k!=='id'));
+        currentSchema.forEach(k=>{ const el=document.getElementById('field-'+k); if(el) el.value = val[k] || ''; });
+        document.getElementById('save-btn').textContent='Update Entry'; document.getElementById('save-btn').onclick = ()=> updateEntry(id);
+      } }); }
+
+    function updateEntry(id){ const obj = {}; currentSchema.forEach(k=>{ const el=document.getElementById('field-'+k); obj[k] = el? el.value : ''; }); obj.id = Number(id); obj._updated = new Date().toISOString(); putEntry(obj).then(()=>{ alert('Updated'); document.getElementById('save-btn').textContent='Save Entry'; document.getElementById('save-btn').onclick = saveEntry; showEntries(); }); }
+
+    function removeEntry(id){ if(!confirm('Delete entry #' + id + '?')) return; deleteEntryById(id).then(()=>{ alert('Deleted'); showEntries(); }); }
+
+    function clearAllConfirm(){ if(confirm('Clear all entries? This cannot be undone.')){ clearAll().then(()=>{ alert('Cleared'); renderTablePlaceholder(); }); } }
+
+    // Import / Export
+    function importExcelPrompt(){ const fi = document.getElementById('file-input'); fi.value=null; fi.onchange = (e)=>{ const f = e.target.files[0]; if(!f) return; handleImportFile(f); }; fi.click(); }
+    function handleImportFile(file){ const reader = new FileReader(); reader.onload = async (ev)=>{ const data = ev.target.result; const wb = XLSX.read(data, {type:'binary'}); const first = wb.SheetNames[0]; const rows = XLSX.utils.sheet_to_json(wb.Sheets[first], {defval:''}); if(rows.length===0) return alert('No rows'); // map keys
+        if(!document.getElementById('data-form')){ const keys = Object.keys(rows[0]); currentSchema = keys; buildForm(keys); }
+        for(const r of rows){ const obj = {}; currentSchema.forEach(k=> obj[k] = r[k] !== undefined ? r[k] : ''); obj._imported = new Date().toISOString(); await addEntry(obj); }
+        alert('Imported ' + rows.length + ' rows'); showEntries(); };
+      reader.readAsBinaryString(file);
+    }
+
+    async function exportToExcel(){ const rows = await getAllEntries(); if(rows.length===0) return alert('No entries to export'); const cols = Object.keys(rows[0]).filter(k=>k!=='id'); const data = rows.map(r=>{ const o={}; cols.forEach(c=> o[c]= r[c]!==undefined ? r[c] : ''); return o; });
+      // totals sheet
+      const cropTotals = {}; const monthTotals = {};
+      data.forEach(r=>{ const crop = r['Crop']||'Unknown'; const month = r['Month']||''; const area = parseFloat((r['Area']||0)) || 0; cropTotals[crop] = (cropTotals[crop]||0) + area; monthTotals[month] = (monthTotals[month]||0) + area; });
+      const totCropArr = Object.keys(cropTotals).map(k=> ({Crop:k, Total: cropTotals[k].toFixed(2)}));
+      const totMonthArr = Object.keys(monthTotals).map(k=> ({Month:k, Total: monthTotals[k].toFixed(2)}));
+      const wb = XLSX.utils.book_new(); const ws1 = XLSX.utils.json_to_sheet(data); XLSX.utils.book_append_sheet(wb, ws1, 'Entries'); const ws2 = XLSX.utils.json_to_sheet(totCropArr); XLSX.utils.book_append_sheet(wb, ws2, 'CropTotals'); const ws3 = XLSX.utils.json_to_sheet(totMonthArr); XLSX.utils.book_append_sheet(wb, ws3, 'MonthTotals'); XLSX.writeFile(wb, 'CropData.xlsx'); }
+
+    async function exportToSQL(){ const rows = await getAllEntries(); if(rows.length===0) return alert('No entries'); const cols = Object.keys(rows[0]).filter(k=>k!=='id'); const table='CropEntries'; const create = `CREATE TABLE ${table} (id INTEGER PRIMARY KEY, ${cols.map(c=>`'${c}' TEXT`).join(', ')});
+`;
+      let inserts=''; rows.forEach(r=>{ const vals = cols.map(c=> (r[c]||'').toString().replace(/'/g,"''")); inserts += `INSERT INTO ${table} (${cols.map(c=>`'${c}'`).join(', ')}) VALUES ('${vals.join("','")}');
+`; });
+      const blob = new Blob([create + inserts], {type:'application/sql'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'CropData.sql'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    async function downloadDBBackup(){ const rows = await getAllEntries(); const blob = new Blob([JSON.stringify(rows,null,2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'CropData_backup.json'; a.click(); URL.revokeObjectURL(url); }
+
+    // Utilities
+    function toggleMenu(btn){ const dd = btn.nextElementSibling; document.querySelectorAll('.dropdown').forEach(d=>{ if(d!==dd) d.style.display='none'; }); dd.style.display = (dd.style.display==='block'?'none':'block'); }
+    window.addEventListener('click',(e)=>{ if(!e.target.matches('.menu>button')) document.querySelectorAll('.dropdown').forEach(d=>d.style.display='none'); });
+
+    function newEntry(){ if(!document.getElementById('data-form')) buildForm(currentSchema); currentSchema.forEach(k=>{ const el=document.getElementById('field-'+k); if(el && !el.disabled) el.value=''; }); setTimeout(()=>{ const el=document.querySelector('#data-form input:not([disabled]), #data-form select'); if(el) el.focus(); },40); }
+
+    function openSchemaModal(){ document.getElementById('schema-input').focus(); }
+    function openSettings(){ alert('Settings placeholder: you can customize field types and backup schedules.'); }
+
+    // Initialize
+    useDefaultSchema(); initDB();
+  </script>
+</body>
+</html>

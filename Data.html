@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Month-wise Crop Report</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 30px;
+    background-color: #f7f7f7;
+  }
+  h2 {
+    color: #2e7d32;
+  }
+  form {
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  input, select, button {
+    padding: 8px;
+    margin: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #45a049;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background: #4CAF50;
+    color: white;
+  }
+  .subtotal {
+    background-color: #e8f5e9;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h2>🌱 Month-wise Crop Data Entry</h2>
+
+<form id="dataForm">
+  <input type="number" id="slno" placeholder="Sl.No" required>
+  <input type="text" id="survey" placeholder="Survey No" required>
+  <input type="text" id="subdivision" placeholder="Sub Division" required>
+  <select id="month" required>
+    <option value="">Select Month</option>
+    <option value="1">January</option><option value="2">February</option>
+    <option value="3">March</option><option value="4">April</option>
+    <option value="5">May</option><option value="6">June</option>
+    <option value="7">July</option><option value="8">August</option>
+    <option value="9">September</option><option value="10">October</option>
+    <option value="11">November</option><option value="12">December</option>
+  </select>
+  <input type="text" id="crop" placeholder="Crop Name" required>
+  <input type="number" id="area" placeholder="Area" step="0.0001" required>
+  <button type="submit">Add Record</button>
+</form>
+
+<h3>📋 Data Table</h3>
+<table id="dataTable">
+  <thead>
+    <tr>
+      <th>Sl.No</th>
+      <th>Survey No</th>
+      <th>Sub Division</th>
+      <th>Month</th>
+      <th>Crop Name</th>
+      <th>Area</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<h3>📊 Month-wise Crop Subtotals</h3>
+<table id="summaryTable">
+  <thead>
+    <tr>
+      <th>Month</th>
+      <th>Crop Name</th>
+      <th>Total Area</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+let data = [];
+
+document.getElementById("dataForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const record = {
+    SlNo: document.getElementById("slno").value,
+    SurveyNo: document.getElementById("survey").value,
+    Sub_Division: document.getElementById("subdivision").value,
+    Month: +document.getElementById("month").value,
+    Crop_Name: document.getElementById("crop").value.trim(),
+    Area: parseFloat(document.getElementById("area").value)
+  };
+
+  data.push(record);
+  updateTable();
+  updateSummary();
+
+  // Reset form
+  this.reset();
+});
+
+function updateTable() {
+  const tbody = document.querySelector("#dataTable tbody");
+  tbody.innerHTML = "";
+  data.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.SlNo}</td>
+      <td>${row.SurveyNo}</td>
+      <td>${row.Sub_Division}</td>
+      <td>${row.Month}</td>
+      <td>${row.Crop_Name}</td>
+      <td>${row.Area.toFixed(3)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateSummary() {
+  const grouped = {};
+  data.forEach(row => {
+    const key = row.Month + "_" + row.Crop_Name;
+    grouped[key] = (grouped[key] || 0) + row.Area;
+  });
+
+  const summary = Object.entries(grouped).map(([key, total]) => {
+    const [month, crop] = key.split("_");
+    return { Month: +month, Crop_Name: crop, Total: total };
+  }).sort((a, b) => a.Month - b.Month);
+
+  const tbody = document.querySelector("#summaryTable tbody");
+  tbody.innerHTML = "";
+  summary.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.className = "subtotal";
+    tr.innerHTML = `<td>${row.Month}</td><td>${row.Crop_Name}</td><td>${row.Total.toFixed(3)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+</script>
+</body>
+</html>

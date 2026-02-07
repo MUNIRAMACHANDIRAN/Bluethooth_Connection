@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Month-wise Crop Report with Abstracts</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+@font-face {
+    font-family: 'suntommy';
+    src: url('suntommy.ttf') format('truetype');
+}
+
+body, table, th, td, h2, h3, select, input, button {
+    font-family: 'suntommy', Arial, sans-serif;
+}
+body { margin: 20px; background: #f7f7f7; }
+h2 { color: #2e7d32; }
+input, select, button { padding: 6px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
+button { background: #4CAF50; color: white; cursor: pointer; border: none; }
+button:hover { background: #388E3C; }
+table { border-collapse: collapse; width: 100%; background: #fff; margin-top: 15px; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+th { background: #4CAF50; color: white; }
+.subtotal { background: #e8f5e9; font-weight: bold; }
+.monthtotal { background: #b2dfdb; font-weight: bold; }
+.grandtotal { background: #80cbc4; font-weight: bold; }
+.total-merged { text-align: right; font-weight: bold; padding-right: 10px; }
+#abstractI, #abstractIA { margin-top: 40px; }
+@media print {
+  input, select, button, #entryForm { display: none; }
+  body { background: white; }
+}
+</style>
+</head>
+<body>
+
+<h2>🌾 Month-wise Crop Subtotal Report</h2>
+
+<input type="file" id="excelFile" accept=".xlsx, .xls">
+<select id="accountSelect" onchange="renderReport()">
+  <option value="I">Account No. I</option>
+  <option value="II">Account No. II</option>
+  <option value="Both">Both</option>
+</select>
+<select id="monthSelect" onchange="renderReport()">
+  <option value="">-- Select Month --</option>
+</select>
+<button onclick="exportOptions()">Export</button>
+<button onclick="window.print()">🖨️ Print</button>
+<button onclick="saveToExcel()">💾 Save to Excel</button>
+
+<h3>➕ Add New Entry</h3>
+<div id="entryForm">
+  <input type="text" id="surveyNo" placeholder="Survey No">
+  <input type="text" id="subDivision" placeholder="SubDivision">
+  <input type="number" id="month" placeholder="Month">
+  <input type="text" id="crop" placeholder="Crop">
+  <input type="text" id="area" placeholder="Area (e.g., 0.05.0)">
+  <button onclick="addNewEntry()">Add Entry</button>
+</div>
+
+<h3>📋 Report Table</h3>
+<table id="reportTable">
+  <thead>
+    <tr>
+      <th>Sl.No</th>
+      <th>Survey No</th>
+      <th>SubDivision</th>
+      <th>Month</th>
+      <th>Crop</th>
+      <th>Area</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div id="abstractI"></div>
+<div id="abstractIA"></div>
+
+<button onclick="generateAbstract('I')">🖨️ Print Abstract-I</button>
+<button onclick="generateAbstract('IA')">🖨️ Print Abstract-I-A</button>
+
+<script>
+let data = [];
+let columnMap = {};
+
+// Load Excel
+document.getElementById('excelFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(event){
+    const workbook = XLSX.read(event.target.result, { type: 'binary' });
+    const sheet = workbook.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheet], {defval:''});
+    data = rows;
+    mapColumns(rows[0]);
+    populateMonthSelect();
+    renderReport();
+  };
+  reader.readAsBinaryString(file);
+});
+
+function mapColumns(row){
+  const keys = Object.keys(row);
+  columnMap = {
+    SlNo: keys.find(k=>k.toLowerCase().includes('sl')) || keys[0],
+    SurveyNo: keys.find(k=>k.toLowerCase().includes('survey')) || keys[1],
+    SubDivision: keys.find(k=>k.toLowerCase().includes('sub')) || keys[2],
+    Month: keys.find(k=>k.toLowerCase().includes('month')) || keys[3],
+    Crop: keys.find(k=>k.toLowerCase().includes('crop')) || keys[4],
+    Area: keys.find(k=>k.toLowerCase().includes('area')) || keys[5]
+  };
+}
+
+function populateMonthSelect(){
+  const monthSelect = document.getElementById('monthSelect');
+  monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+  const months = [...new Set(data.map(r=>r[columnMap.Month]))].sort((a,b)=>a-b);
+  months.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m;
+    monthSelect.appendChild(opt);
+  });
+  const allOpt = document.createElement('option');
+  allOpt.value = 'all';
+  allOpt.textContent = 'All Months';
+  monthSelect.appendChild(allOpt);
+}
+
+function renderReport(){
+  const tbody = document.querySelector("#reportTable tbody");
+  tbody.innerHTML = "";
+  const selectedMonth = document.getElementById('monthSelect').value;
+  const selectedAccount = document.getElementById('accountSelect').value;
+
+  const filteredData = (selectedMonth && selectedMonth!=='all') ? 
+      data.filter(r=>r[columnMap.Month]==selectedMonth) : data;
+
+  if(selectedAccount === 'I' || selectedAccount === 'Both'){
+    renderAccountI(filteredData, tbody);
+  }
+  if(selectedAccount === 'II' || selectedAccount === 'Both'){
+    renderAccountII(filteredData, tbody);
+  }
+
+  generateAbstractTables(filteredData);
+}
+
+function renderAccountI(filteredData, tbody){
+  let sl = 1;
+  filteredData.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${sl++}</td>
+      <td>${r[columnMap.SurveyNo]}</td>
+      <td>${r[columnMap.SubDivision]}</td>
+      <td>${r[columnMap.Month]}</td>
+      <td>${r[columnMap.Crop]}</td>
+      <td>${r[columnMap.Area]}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderAccountII(filteredData, tbody){
+  const grouped = {};
+  filteredData.forEach(r=>{
+    const key = r[columnMap.Month] + '_' + r[columnMap.Crop];
+    if(!grouped[key]) grouped[key] = [];
+    grouped[key].push(r);
+  });
+
+  Object.keys(grouped).forEach((key, i)=>{
+    const [month, crop] = key.split('_');
+    let total = 0;
+    grouped[key].forEach(r=>{
+      const val = parseFloat(r[columnMap.Area].toString().split('.').slice(0,2).join('.')) || 0;
+      total += val;
+    });
+    const tr = document.createElement('tr');
+    tr.className = 'subtotal';
+    tr.innerHTML = `<td colspan="6">${month} - ${crop}: ${total.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// Add new entry
+function addNewEntry(){
+  if(!Object.keys(columnMap).length){
+    alert("⚠️ Please load an Excel file first.");
+    return;
+  }
+  const entry = {
+    [columnMap.SurveyNo]: document.getElementById('surveyNo').value,
+    [columnMap.SubDivision]: document.getElementById('subDivision').value,
+    [columnMap.Month]: document.getElementById('month').value,
+    [columnMap.Crop]: document.getElementById('crop').value,
+    [columnMap.Area]: document.getElementById('area').value
+  };
+  data.push(entry);
+  renderReport();
+  alert('✅ Entry added successfully!');
+}
+
+// Save to Excel
+function saveToExcel(){
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, "Report");
+  XLSX.writeFile(wb, "CropReport.xlsx");
+}
+
+// Generate Abstract Tables
+function generateAbstractTables(filteredData){
+  let abstractHTML = `
+    <h3>📘 Abstract-I</h3>
+    <table>
+      <thead><tr><th>Sl.No</th><th>Category</th><th>1st Crop</th><th>2nd Crop</th><th>Total</th></tr></thead>
+      <tbody>`;
+  const cats = ["Nanjai","Panjai","Nan 0","Pun 0","Puram","Block"];
+  cats.forEach((c, i)=>{
+    abstractHTML += `<tr><td>${i+1}</td><td>${c}</td><td></td><td></td><td>0.00.0</td></tr>`;
+  });
+  abstractHTML += `<tr class="grandtotal"><td colspan="2">Total</td><td></td><td></td><td>0.00.0</td></tr></tbody></table>`;
+  document.getElementById('abstractI').innerHTML = abstractHTML;
+
+  let abstractIA = `
+    <h3>📗 Abstract-I-A</h3>
+    <table>
+      <thead><tr><th>Sl.No</th><th>Crop</th><th>Remarks</th></tr></thead><tbody>`;
+  const crops = [...new Set(filteredData.map(r=>r[columnMap.Crop]))];
+  crops.forEach((c, i)=>{
+    abstractIA += `<tr><td>${i+1}</td><td>${c}</td><td></td></tr>`;
+  });
+  abstractIA += `</tbody></table>`;
+  document.getElementById('abstractIA').innerHTML = abstractIA;
+}
+
+// Print Abstracts
+function generateAbstract(type){
+  window.print();
+}
+
+// Export options
+function exportOptions(){
+  const format = prompt("Enter export format: csv, pdf, xlsx, word").toLowerCase();
+  if(format==='xlsx') saveToExcel();
+  else alert("Only Excel export supported in this version.");
+}
+</script>
+</body>
+</html>

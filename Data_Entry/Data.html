@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Data Entry Form — Web (HTML/JS)</title>
+  <style>
+    :root{--bg:#f5f7fb;--card:#fff;--muted:#6b7280;--accent:#0f766e}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:var(--bg);color:#111}
+    header{background:#0b74a6;color:#fff;padding:10px 14px;display:flex;align-items:center;gap:16px}
+    .brand{font-weight:700;font-size:18px}
+    .menubar{display:flex;gap:8px}
+    .menu{position:relative}
+    .menu>button{background:transparent;border:0;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer}
+    .menu>button:hover{background:rgba(255,255,255,0.08)}
+    .dropdown{position:absolute;top:36px;left:0;background:var(--card);color:#111;border-radius:8px;box-shadow:0 6px 20px rgba(16,24,40,0.08);min-width:180px;padding:8px;display:none;z-index:50}
+    .dropdown button{display:block;width:100%;text-align:left;padding:8px;border:0;background:transparent;border-radius:6px;cursor:pointer}
+    .dropdown button:hover{background:#f3f4f6}
+    main{padding:18px;display:grid;grid-template-columns:360px 1fr;gap:18px}
+    .card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 1px 0 rgba(0,0,0,0.04)}
+    .panel-title{font-weight:600;margin-bottom:10px}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:10px}
+    input[type=text],select,textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #e6e9ef;margin-top:6px}
+    .actions{display:flex;gap:8px;margin-top:12px}
+    .btn{padding:8px 12px;border:0;border-radius:8px;cursor:pointer}
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.ghost{background:transparent;border:1px solid #e6e9ef}
+    #form-area{max-height:60vh;overflow:auto;padding-right:6px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:6px;border-bottom:1px solid #eef2f7;text-align:left}
+    .small{font-size:12px;color:var(--muted)}
+    footer{padding:10px;font-size:13px;color:var(--muted)}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    .notice{background:#fffbeb;border:1px solid #fcefc7;padding:8px;border-radius:8px;color:#92400e}
+    .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:100}
+    .modal .card{width:720px}
+    .hint{font-size:12px;color:var(--muted)}
+    .table-wrapper{max-height:50vh;overflow:auto}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Data Entry — Web</div>
+    <nav class="menubar">
+      <div class="menu">
+        <button onclick="toggleMenu(this)">File ▾</button>
+        <div class="dropdown">
+          <button onclick="newEntry()">New Entry</button>
+          <button onclick="exportToExcel()">Export → Excel (.xlsx)</button>
+          <button onclick="exportToSQL()">Export → SQL (.sql)</button>
+          <button onclick="importExcelPrompt()">Import Excel</button>
+          <button onclick="downloadDBBackup()">Download DB Backup (.bin)</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button onclick="toggleMenu(this)">Edit ▾</button>
+        <div class="dropdown">
+          <button onclick="showEntries()">Show All Entries</button>
+          <button onclick="clearAllConfirm()">Clear All Entries</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button onclick="toggleMenu(this)">Tools ▾</button>
+        <div class="dropdown">
+          <button onclick="openSchemaModal()">Paste sample / Generate Form</button>
+          <button onclick="openImportModal()">Import CSV / Excel</button>
+          <button onclick="openSettings()">Settings</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button onclick="toggleMenu(this)">Advanced ▾</button>
+        <div class="dropdown">
+          <button onclick="downloadSQLJSExample()">Download SQL.js Example DB</button>
+          <button onclick="openExportOptions()">Advanced Export Options</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button onclick="toggleMenu(this)">About ▾</button>
+        <div class="dropdown">
+          <div style="padding:8px;max-width:280px">
+            <div style="font-weight:600">Data Entry Web (HTML/JS)</div>
+            <div class="small">Stores entries in browser (IndexedDB). Export to Excel and SQL supported. Works fully offline.</div>
+            <div style="margin-top:8px" class="small">Open-source, single-file. Paste your header row to dynamically build the form.</div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="panel-title">Form builder / Controls</div>
+      <div class="hint">If you already have your sample column headers, paste the header row (comma or tab separated) and click <strong>Generate Form</strong>.</div>
+      <label>Paste header row (e.g. SurveyNo,SubDivision,Month,Crop,Area)</label>
+      <textarea id="schema-input" rows="3" placeholder="SurveyNo,SubDivision,Month,Crop,Area"></textarea>
+      <div class="actions">
+        <button class="btn primary" onclick="generateFormFromSchema()">Generate Form</button>
+        <button class="btn ghost" onclick="useDefaultSchema()">Use Default</button>
+      </div>
+
+      <hr style="margin:12px 0">
+
+      <div style="margin-top:8px">
+        <div class="small">Import / Export</div>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn" onclick="importExcelPrompt()">Import Excel</button>
+          <button class="btn" onclick="exportToExcel()">Export Excel</button>
+          <button class="btn" onclick="exportToSQL()">Export SQL</button>
+        </div>
+      </div>
+
+      <hr style="margin:12px 0">
+
+      <div class="small">Quick actions</div>
+      <div class="actions" style="margin-top:8px">
+        <button class="btn" onclick="newEntry()">New Entry</button>
+        <button class="btn" onclick="showEntries()">Show Entries</button>
+        <button class="btn" onclick="clearAllConfirm()">Clear Database</button>
+      </div>
+
+      <hr style="margin:12px 0">
+      <div class="notice">Data is stored in your browser using IndexedDB — persistent on this device and browser. You can export full DB anytime.</div>
+    </section>
+
+    <section class="card">
+      <div class="panel-title">Data Entry</div>
+      <div id="form-area">
+        <!-- form fields will be injected here -->
+      </div>
+
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" id="save-btn" onclick="saveEntry()">Save Entry</button>
+        <button class="btn ghost" onclick="saveAndNew()">Save & New</button>
+        <button class="btn" onclick="exportToExcel()">Export Excel</button>
+        <button class="btn" onclick="exportToSQL()">Export SQL</button>
+      </div>
+
+      <hr style="margin:12px 0">
+      <div id="table-area"></div>
+    </section>
+  </main>
+
+  <footer>
+    Tip: After opening this file in your browser you may pin it and run offline. Use <strong>Import</strong> to load existing Excel/CSV data.
+  </footer>
+
+  <!-- hidden file inputs -->
+  <input type="file" id="file-input" style="display:none" accept=".xlsx,.xls,.csv" />
+
+  <!-- dependencies: SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <script>
+    // --- IndexedDB setup ---
+    const DB_NAME = 'data_entry_db_v1';
+    const STORE_NAME = 'entries';
+    let db;
+
+    function initDB(){
+      return new Promise((res, rej)=>{
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e)=>{
+          const idb = e.target.result;
+          if(!idb.objectStoreNames.contains(STORE_NAME)){
+            idb.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+          }
+        }
+        req.onsuccess = ()=>{ db = req.result; res(db); }
+        req.onerror = (e)=> rej(e);
+      })
+    }
+
+    async function addEntry(obj){
+      await initDB();
+      return new Promise((res, rej)=>{
+        const tx = db.transaction(STORE_NAME,'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const r = store.add(obj);
+        r.onsuccess = ()=> res(r.result);
+        r.onerror = (e)=> rej(e);
+      })
+    }
+    async function getAllEntries(){
+      await initDB();
+      return new Promise((res, rej)=>{
+        const tx = db.transaction(STORE_NAME,'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const r = store.getAll();
+        r.onsuccess = ()=> res(r.result);
+        r.onerror = (e)=> rej(e);
+      })
+    }
+    async function clearAll(){
+      await initDB();
+      return new Promise((res, rej)=>{
+        const tx = db.transaction(STORE_NAME,'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const r = store.clear();
+        r.onsuccess = ()=> res();
+        r.onerror = (e)=> rej(e);
+      })
+    }
+
+    // --- Form generation ---
+    let currentSchema = ['SurveyNo','SubDivision','Month','Crop','Area'];
+
+    function useDefaultSchema(){
+      currentSchema = ['SurveyNo','SubDivision','Month','Crop','Area'];
+      buildForm(currentSchema);
+    }
+
+    function generateFormFromSchema(){
+      const raw = document.getElementById('schema-input').value.trim();
+      if(!raw){ alert('Please paste header row (comma separated) or use Default.'); return; }
+      // split by comma or tab
+      const parts = raw.split(/,|\t|;/).map(s=>s.trim()).filter(Boolean);
+      if(parts.length===0){ alert('No headers parsed.'); return; }
+      currentSchema = parts;
+      buildForm(currentSchema);
+    }
+
+    function buildForm(fields){
+      const area = document.getElementById('form-area');
+      area.innerHTML = '';
+      const form = document.createElement('div');
+      form.id = 'data-form';
+      fields.forEach(f=>{
+        const wrapper = document.createElement('div');
+        const label = document.createElement('label');
+        label.textContent = f;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = f;
+        input.id = 'field-' + f;
+        input.placeholder = f;
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
+        form.appendChild(wrapper);
+      })
+      area.appendChild(form);
+
+      // table area initial
+      renderTablePlaceholder();
+    }
+
+    function renderTablePlaceholder(){
+      const ta = document.getElementById('table-area');
+      ta.innerHTML = '<div class="small">No entries shown. Click "Show Entries" to view saved records.</div>';
+    }
+
+    // --- Save / Edit actions ---
+    async function saveEntry(){
+      const form = document.getElementById('data-form');
+      if(!form){ alert('Generate the form first.'); return; }
+      const data = {};
+      currentSchema.forEach(k=>{ data[k] = (document.getElementById('field-'+k).value||'').toString(); });
+      data._created = new Date().toISOString();
+      await addEntry(data);
+      alert('Saved ✔');
+    }
+    async function saveAndNew(){ await saveEntry(); currentSchema.forEach(k=>document.getElementById('field-'+k).value=''); document.getElementById('field-'+currentSchema[0]).focus(); }
+
+    async function showEntries(){
+      const rows = await getAllEntries();
+      const ta = document.getElementById('table-area');
+      if(rows.length===0){ ta.innerHTML = '<div class="small">No entries yet.</div>'; return; }
+      let html = '<div class="table-wrapper"><table><thead><tr>';
+      // headers
+      html += '<th>ID</th>';
+      Object.keys(rows[0]).filter(k=>k!=='id').forEach(h=> html += '<th>' + h + '</th>');
+      html += '<th>Actions</th>';
+      html += '</tr></thead><tbody>';
+      rows.forEach(r=>{
+        html += '<tr>';
+        html += '<td>' + (r.id||'') + '</td>';
+        Object.keys(r).filter(k=>k!=='id').forEach(h=> html += '<td>' + (r[h]||'') + '</td>');
+        html += '<td><button onclick="editEntry('+r.id+')">Edit</button> <button onclick="deleteEntry('+r.id+')">Delete</button></td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      ta.innerHTML = html;
+    }
+
+    function editEntry(id){
+      // simple edit: load into form (non-destructive delete/replace on save)
+      initDB().then(()=>{
+        const tx = db.transaction(STORE_NAME,'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const r = store.get(Number(id));
+        r.onsuccess = ()=>{
+          const val = r.result;
+          if(!val) return alert('Not found');
+          // populate form fields
+          if(!document.getElementById('data-form')) buildForm(Object.keys(val).filter(k=>k!=='id' && k!=='_created'));
+          Object.keys(val).forEach(k=>{ if(k!=='id'){
+            const el = document.getElementById('field-'+k);
+            if(el) el.value = val[k];
+          }});
+          // change save button to update
+          const saveBtn = document.getElementById('save-btn');
+          saveBtn.textContent = 'Update Entry';
+          saveBtn.onclick = ()=> updateEntry(id);
+        }
+      })
+    }
+
+    function updateEntry(id){
+      const data = {};
+      currentSchema.forEach(k=>{ data[k] = (document.getElementById('field-'+k).value||'').toString(); });
+      data._updated = new Date().toISOString();
+      data.id = Number(id);
+      initDB().then(()=>{
+        const tx = db.transaction(STORE_NAME,'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const r = store.put(data);
+        r.onsuccess = ()=>{ alert('Updated'); showEntries(); document.getElementById('save-btn').textContent='Save Entry'; document.getElementById('save-btn').onclick=saveEntry; }
+        r.onerror = (e)=> alert('Error updating: '+e);
+      })
+    }
+
+    function deleteEntry(id){
+      if(!confirm('Delete entry #' + id + '?')) return;
+      initDB().then(()=>{
+        const tx = db.transaction(STORE_NAME,'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const r = store.delete(Number(id));
+        r.onsuccess = ()=>{ alert('Deleted'); showEntries(); }
+      })
+    }
+
+    function clearAllConfirm(){ if(confirm('Clear all entries from database? This cannot be undone.')){ clearAll().then(()=>{ alert('Cleared'); renderTablePlaceholder(); }); } }
+
+    // --- Export / Import ---
+    async function exportToExcel(){
+      const rows = await getAllEntries();
+      if(rows.length===0){ alert('No entries to export'); return; }
+      // sanitize: remove id if present as first col
+      const cols = Object.keys(rows[0]);
+      const data = rows.map(r=>{ const o={}; cols.forEach(c=>o[c]=r[c]||''); return o; });
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Entries');
+      XLSX.writeFile(wb, 'data_entries.xlsx');
+    }
+
+    async function exportToSQL(){
+      const rows = await getAllEntries();
+      if(rows.length===0){ alert('No entries'); return; }
+      const cols = Object.keys(rows[0]).filter(k=>k!=='id');
+      const tableName = 'entries';
+      // create table statement
+      const create = `CREATE TABLE ${tableName} (id INTEGER PRIMARY KEY, ${cols.map(c=>`'${c}' TEXT`).join(', ')});\n`;
+      let inserts = '';
+      rows.forEach(r=>{
+        const vals = cols.map(c=> (r[c]||'').replace(/'/g,"''") );
+        inserts += `INSERT INTO ${tableName} (${cols.map(c=>`'${c}'`).join(', ')}) VALUES ('${vals.join("','")}');\n`;
+      });
+      const blob = new Blob([create + inserts], {type:'application/sql'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'data_entries.sql'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function importExcelPrompt(){
+      const fi = document.getElementById('file-input');
+      fi.value = null; fi.onchange = (e)=>{ const f = e.target.files[0]; if(!f) return; handleImportFile(f); };
+      fi.click();
+    }
+
+    function handleImportFile(file){
+      const reader = new FileReader();
+      reader.onload = async (ev)=>{
+        const data = ev.target.result;
+        const wb = XLSX.read(data, {type:'binary'});
+        const first = wb.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[first], {defval: ''});
+        if(rows.length===0) return alert('No rows found');
+        // if DB empty, use keys as schema
+        if(!document.getElementById('data-form')){
+          const keys = Object.keys(rows[0]);
+          currentSchema = keys; buildForm(keys);
+        }
+        // insert rows
+        for(const r of rows){
+          // normalize to currentSchema keys
+          const obj = {};
+          currentSchema.forEach(k=> obj[k] = (r[k]!==undefined? r[k]: ''));
+          obj._imported = new Date().toISOString();
+          await addEntry(obj);
+        }
+        alert('Imported ' + rows.length + ' rows.');
+      };
+      reader.readAsBinaryString(file);
+    }
+
+    // --- DB Backup (binary) ---
+    async function downloadDBBackup(){
+      // quick approach: export all entries as JSON
+      const rows = await getAllEntries();
+      const blob = new Blob([JSON.stringify(rows)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'data_entries_backup.json'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    // --- Utilities ---
+    function toggleMenu(btn){ const dd = btn.nextElementSibling; document.querySelectorAll('.dropdown').forEach(d=>{ if(d!==dd) d.style.display='none'; }); dd.style.display = (dd.style.display==='block'?'none':'block'); }
+    window.addEventListener('click',(e)=>{ if(!e.target.matches('.menu>button')){ document.querySelectorAll('.dropdown').forEach(d=>d.style.display='none'); } });
+
+    function newEntry(){ if(!document.getElementById('data-form')) buildForm(currentSchema); currentSchema.forEach(k=>{ const el=document.getElementById('field-'+k); if(el) el.value=''; }); document.getElementById('field-'+currentSchema[0]).focus(); }
+
+    function openSchemaModal(){ document.getElementById('schema-input').focus(); }
+    function openImportModal(){ importExcelPrompt(); }
+    function openSettings(){ alert('Settings panel placeholder — you can configure field types, validation, and backup options.'); }
+    function downloadSQLJSExample(){ alert('This button would provide a SQL.js (SQLite WASM) example. For most users, IndexedDB + SQL export is simpler.'); }
+    function openExportOptions(){ alert('Advanced export options — placeholder. Options could include selecting columns, date range, or file format.'); }
+
+    function downloadSQLFile(filename, content){ const blob = new Blob([content], {type:'application/sql'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+
+    // initialize
+    useDefaultSchema();
+    initDB();
+  </script>
+</body>
+</html>

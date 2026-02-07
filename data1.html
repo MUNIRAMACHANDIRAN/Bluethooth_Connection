@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Month-wise Crop & Abstract Reports</title>
+
+<!-- libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.3.1/docx.min.js"></script>
+
+<style>
+@font-face { font-family: 'suntommy'; src: url('suntommy.ttf') format('truetype'); }
+body, table, th, td, h2, h3, select, input, button, label { font-family: 'suntommy', Arial, sans-serif; }
+body { margin: 18px; background: #f6f6f6; color: #111; }
+h2 { color: #2e7d32; margin-bottom: 6px; }
+.controls { margin-bottom: 12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.controls > * { margin: 2px; }
+input[type=file], select, button { padding: 6px 8px; border-radius: 4px; border: 1px solid #cfcfcf; background: white; }
+button { background: #4CAF50; color: white; cursor: pointer; border: none; }
+button.secondary { background: #1e88e5; }
+button:hover { opacity: 0.95; }
+
+/* Section tables with borders */
+table { border-collapse: collapse; width: 100%; margin-top: 10px; page-break-inside: avoid; }
+th, td { border: 1px solid #444; padding: 6px 8px; text-align: left; font-size: 12px; }
+
+/* Account I - green */
+#mainReportSection { border: 3px solid #388E3C; padding:10px; page-break-after: always; }
+#mainReportSection th { background:#66BB6A; color:#fff; }
+
+/* Account II - blue */
+#accountIISection { border: 3px solid #1976D2; padding:10px; page-break-after: always; }
+#accountIISection th { background:#42A5F5; color:#fff; }
+
+/* Abstract I-A - orange */
+#abstractIA { border: 3px solid #F57C00; padding:10px; page-break-after: always; }
+#abstractIA th { background:#FFB74D; color:#fff; }
+#abstractIA td { border:1px solid #F57C00; }
+
+/* Totals */
+.total-row { font-weight: bold; background: #eee; }
+
+/* Print */
+@media print { .controls { display:none !important; } body{margin:0;} table{page-break-inside:avoid;} }
+</style>
+</head>
+<body>
+
+<h2>Month-wise Crop & Abstract Reports</h2>
+
+<div class="controls">
+  <input type="file" id="excelFile" accept=".xlsx,.xls">
+  <label>Month:</label>
+  <select id="monthSelect" onchange="renderReport()"><option value="">-- Select Month --</option></select>
+  <label>Account No:</label>
+  <select id="accountSelect" onchange="renderReport()">
+    <option value="I">Account I</option>
+    <option value="II">Account II</option>
+    <option value="Both">Both</option>
+  </select>
+  <button onclick="generateAbstracts()">Generate Abstract I-A</button>
+  <button onclick="window.print()">🖨️ Print</button>
+</div>
+
+<!-- Account I -->
+<div class="section" id="mainReportSection">
+  <h3>Account I - Full Report (Survey-wise with Crop & Month Totals)</h3>
+  <table id="reportTable">
+    <thead>
+      <tr><th>Sl.No</th><th>Survey No</th><th>SubDivision</th><th>Month</th><th>Crop</th><th>Area</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr class="total-row"><td colspan="6" style="text-align:center;font-weight:bold;">Crop-wise Subtotals</td></tr>
+      <tbody id="cropSubtotalI"></tbody>
+      <tr class="total-row">
+        <td colspan="5" style="text-align:right">Month Total</td>
+        <td id="monthTotalI">0</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="5" style="text-align:right">Grand Total</td>
+        <td id="grandTotalI">0</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- Account II -->
+<div class="section" id="accountIISection" style="display:none;">
+  <h3>Account II - Crop-wise per Month</h3>
+  <table id="accountIITable">
+    <thead>
+      <tr><th>Month</th><th>Crop</th><th>Total Area</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr class="total-row"><td colspan="2" style="text-align:right">Grand Total</td><td id="grandTotalII">0</td></tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- Abstract I-A -->
+<div class="section" id="abstractIA" style="display:none;">
+  <h3>Abstract I-A - Crop-wise Month Total & Overall Total</h3>
+  <table id="abstractIATable">
+    <thead>
+      <tr><th>Sl.No</th><th>Crop</th><th>Month Total</th><th>Overall Total</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="2" style="text-align:right">Grand Total</td>
+        <td id="grandMonthIA">0</td>
+        <td id="grandOverallIA">0</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<script>
+let data=[], columnMap={}, monthsList=[];
+
+// --- Helpers ---
+function findKey(keys,search){search=search.toLowerCase(); return keys.find(k=>k.toLowerCase().replace(/\s/g,'').includes(search));}
+
+// --- Load Excel ---
+document.getElementById('excelFile').addEventListener('change',function(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(evt){
+    const workbook=XLSX.read(evt.target.result,{type:'binary'});
+    const sheetName=workbook.SheetNames[0];
+    const sheet=XLSX.utils.sheet_to_json(workbook.Sheets[sheetName],{defval:''});
+    data=sheet;
+    if(data.length>0){
+      const keys=Object.keys(data[0]);
+      columnMap={
+        SlNo:findKey(keys,'sl')||keys[0],
+        SurveyNo:findKey(keys,'survey')||keys[1]||keys[0],
+        SubDivision:findKey(keys,'sub')||keys[2]||keys[0],
+        Month:findKey(keys,'month')||keys[3]||keys[0],
+        Crop:findKey(keys,'crop')||keys[4]||keys[0],
+        Area:findKey(keys,'area')||keys[5]||keys[0]
+      };
+    }
+    populateMonthSelect();
+    renderReport();
+  };
+  reader.readAsBinaryString(file);
+});
+
+// --- Populate Months ---
+function populateMonthSelect(){
+  const monthSelect=document.getElementById('monthSelect'); monthSelect.innerHTML='<option value="">-- Select Month --</option>';
+  const months=[...new Set(data.map(r=>r[columnMap.Month]||'').filter(v=>v!==''))];
+  months.sort((a,b)=>Number(a)||0 - Number(b)||0);
+  months.forEach(m=>{const opt=document.createElement('option'); opt.value=m; opt.textContent=m; monthSelect.appendChild(opt);});
+  const allOpt=document.createElement('option'); allOpt.value='all'; allOpt.textContent='All Months'; monthSelect.appendChild(allOpt);
+}
+
+// --- Render Reports ---
+function renderReport(){
+  const selectedMonth=document.getElementById('monthSelect').value;
+  const account=document.getElementById('accountSelect').value;
+  const filtered=(selectedMonth && selectedMonth!=='all')? data.filter(r=>r[columnMap.Month]==selectedMonth) : data.slice();
+
+  // Account I
+  const tbodyI=document.querySelector("#reportTable tbody"); tbodyI.innerHTML='';
+  let monthTotalI=0, grandTotalI=0; let sl=1;
+  if(account==='I'||account==='Both'){
+    filtered.forEach(r=>{
+      const area=parseFloat(String(r[columnMap.Area]||0))||0;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${sl++}</td><td>${r[columnMap.SurveyNo]||''}</td><td>${r[columnMap.SubDivision]||''}</td><td>${r[columnMap.Month]||''}</td><td>${r[columnMap.Crop]||''}</td><td>${area.toFixed(2)}</td>`;
+      tbodyI.appendChild(tr); monthTotalI+=area; grandTotalI+=area;
+    });
+
+    // Crop-wise subtotal
+    const cropTotals={};
+    filtered.forEach(r=>{
+      const crop=r[columnMap.Crop]||'UNKNOWN';
+      const area=parseFloat(String(r[columnMap.Area]||0))||0;
+      cropTotals[crop]=(cropTotals[crop]||0)+area;
+    });
+    const tbodyCrop=document.getElementById('cropSubtotalI'); tbodyCrop.innerHTML='';
+    Object.keys(cropTotals).sort().forEach(crop=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td colspan="4" style="text-align:right">${crop} Subtotal</td><td colspan="2">${cropTotals[crop].toFixed(2)}</td>`;
+      tbodyCrop.appendChild(tr);
+    });
+
+    document.getElementById('monthTotalI').textContent=monthTotalI.toFixed(2);
+    document.getElementById('grandTotalI').textContent=grandTotalI.toFixed(2);
+  }
+
+  // Account II
+  if(account==='II'||account==='Both'){
+    const grouped={};
+    filtered.forEach(r=>{
+      const key=(r[columnMap.Month]||'')+'||'+(r[columnMap.Crop]||'');
+      grouped[key]=(grouped[key]||0)+(parseFloat(String(r[columnMap.Area]||0))||0);
+    });
+    const tbodyII=document.querySelector("#accountIITable tbody"); tbodyII.innerHTML=''; let grandII=0;
+    Object.keys(grouped).sort().forEach(k=>{
+      const [month,crop]=k.split('||'); const val=grouped[k];
+      const tr=document.createElement('tr'); tr.innerHTML=`<td>${month}</td><td>${crop}</td><td>${val.toFixed(2)}</td>`; tbodyII.appendChild(tr); grandII+=val;
+    });
+    document.getElementById('grandTotalII').textContent=grandII.toFixed(2);
+    document.getElementById('accountIISection').style.display='block';
+  } else document.getElementById('accountIISection').style.display='none';
+}
+
+// --- Abstract I-A ---
+function generateAbstracts(){
+  document.getElementById('abstractIA').style.display='block';
+  const tbody=document.querySelector("#abstractIATable tbody"); tbody.innerHTML='';
+  const selectedMonth=document.getElementById('monthSelect').value;
+  const cropTotals={};
+  data.forEach(r=>{
+    const crop=r[columnMap.Crop]||'UNKNOWN'; const area=parseFloat(String(r[columnMap.Area]||0))||0;
+    if(!cropTotals[crop]) cropTotals[crop]={monthTotal:0,overallTotal:0};
+    cropTotals[crop].overallTotal+=area;
+    if(selectedMonth && selectedMonth!=='all'){
+      if(r[columnMap.Month]==selectedMonth) cropTotals[crop].monthTotal+=area;
+    } else cropTotals[crop].monthTotal=cropTotals[crop].overallTotal;
+  });
+  let idx=1, grandMonth=0, grandOverall=0;
+  Object.keys(cropTotals).sort().forEach(crop=>{
+    const valMonth=cropTotals[crop].monthTotal, valOverall=cropTotals[crop].overallTotal;
+    const tr=document.createElement('tr'); tr.innerHTML=`<td>${idx++}</td><td>${crop}</td><td>${valMonth.toFixed(2)}</td><td>${valOverall.toFixed(2)}</td>`; tbody.appendChild(tr);
+    grandMonth+=valMonth; grandOverall+=valOverall;
+  });
+  document.getElementById('grandMonthIA').textContent=grandMonth.toFixed(2);
+  document.getElementById('grandOverallIA').textContent=grandOverall.toFixed(2);
+}
+</script>
+
+</body>
+</html>

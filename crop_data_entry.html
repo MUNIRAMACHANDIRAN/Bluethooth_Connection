@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crop Data Entry Form</title>
+  <style>
+    @font-face {
+      font-family: 'Suntommy';
+      src: local('Suntommy'), url('Suntommy.ttf') format('truetype');
+    }
+
+    body {
+      font-family: 'Suntommy', system-ui, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #2f4f4f;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-size: 1.5em;
+    }
+
+    nav {
+      background: #444;
+      color: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+    }
+
+    nav div {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    form {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 900px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: inline-block;
+      width: 120px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    input, select, button {
+      margin-bottom: 10px;
+      padding: 6px;
+      font-size: 1em;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    table {
+      width: 90%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+
+    th {
+      background: #eee;
+    }
+
+    h3 {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .totals {
+      width: 90%;
+      margin: 10px auto;
+      background: #fffbe6;
+      border: 1px solid #f0c36d;
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    button {
+      background: #2f4f4f;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1e3939;
+    }
+  </style>
+</head>
+<body>
+  <header>🌾 பயிர் தகவல் பதிவு (Crop Data Entry Form)</header>
+
+  <nav>
+    <div onclick="exportExcel()">File</div>
+    <div onclick="editLast()">Edit</div>
+    <div onclick="exportSQL()">Tools</div>
+    <div onclick="clearData()">Advanced</div>
+    <div onclick="aboutInfo()">About</div>
+  </nav>
+
+  <form id="dataForm">
+    <div><label>Survey No:</label> <input type="text" id="surveyNo" required></div>
+    <div><label>SubDivision:</label> <input type="text" id="subDiv" required></div>
+    <div><label>Month:</label> 
+      <select id="month" required>
+        <option value="">Select</option>
+        <option value="1">1</option><option value="2">2</option>
+        <option value="3">3</option><option value="4">4</option>
+        <option value="5">5</option><option value="6">6</option>
+        <option value="7">7</option><option value="8">8</option>
+        <option value="9">9</option><option value="10">10</option>
+        <option value="11">11</option><option value="12">12</option>
+      </select>
+    </div>
+    <div><label>Crop:</label>
+      <select id="crop" required>
+        <option value="">Select</option>
+        <option>தென்னெய்</option>
+        <option>நெல்</option>
+        <option>கரும்பு</option>
+        <option>பருப்பு</option>
+        <option>சோளம்</option>
+        <option>மக்காச்சோளம்</option>
+        <option>வேர்க்கடலை</option>
+      </select>
+    </div>
+    <div><label>Area:</label> <input type="number" step="0.01" id="area" required></div>
+    <button type="submit">Save Entry</button>
+  </form>
+
+  <h3>📋 பதிவுகள் (Entries)</h3>
+  <table id="dataTable">
+    <thead>
+      <tr><th>Sl.No</th><th>Survey No</th><th>SubDivision</th><th>Month</th><th>Crop</th><th>Area</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="totals">
+    <h4>🌱 Crop-wise Total</h4>
+    <ul id="cropTotals"></ul>
+    <h4>🗓️ Month-wise Total</h4>
+    <ul id="monthTotals"></ul>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <script>
+    let entries = JSON.parse(localStorage.getItem("cropEntries") || "[]");
+    const tableBody = document.querySelector("#dataTable tbody");
+
+    function refreshTable() {
+      tableBody.innerHTML = "";
+      entries.forEach((e, i) => {
+        const row = `<tr>
+          <td>${i + 1}</td>
+          <td>${e.survey}</td>
+          <td>${e.subDiv}</td>
+          <td>${e.month}</td>
+          <td>${e.crop}</td>
+          <td>${e.area}</td>
+        </tr>`;
+        tableBody.insertAdjacentHTML("beforeend", row);
+      });
+      calcTotals();
+    }
+
+    function calcTotals() {
+      let cropTotals = {}, monthTotals = {};
+      entries.forEach(e => {
+        cropTotals[e.crop] = (cropTotals[e.crop] || 0) + parseFloat(e.area);
+        monthTotals[e.month] = (monthTotals[e.month] || 0) + parseFloat(e.area);
+      });
+
+      document.querySelector("#cropTotals").innerHTML =
+        Object.entries(cropTotals).map(([k,v]) => `<li>${k}: ${v.toFixed(2)}</li>`).join("");
+      document.querySelector("#monthTotals").innerHTML =
+        Object.entries(monthTotals).map(([k,v]) => `<li>${k}: ${v.toFixed(2)}</li>`).join("");
+    }
+
+    document.querySelector("#dataForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const newEntry = {
+        survey: surveyNo.value,
+        subDiv: subDiv.value,
+        month: month.value,
+        crop: crop.value,
+        area: parseFloat(area.value)
+      };
+      entries.push(newEntry);
+      localStorage.setItem("cropEntries", JSON.stringify(entries));
+      refreshTable();
+      e.target.reset();
+    });
+
+    function exportExcel() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(entries);
+      XLSX.utils.book_append_sheet(wb, ws, "Entries");
+      XLSX.writeFile(wb, "CropData.xlsx");
+    }
+
+    function exportSQL() {
+      const sql = entries.map(e => 
+        `INSERT INTO crop_data (survey, subdivision, month, crop, area) VALUES ('${e.survey}','${e.subDiv}',${e.month},'${e.crop}',${e.area});`
+      ).join("\n");
+      const blob = new Blob([sql], {type: "text/sql"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "CropData.sql";
+      a.click();
+    }
+
+    function clearData() {
+      if (confirm("Clear all saved entries?")) {
+        entries = [];
+        localStorage.removeItem("cropEntries");
+        refreshTable();
+      }
+    }
+
+    function aboutInfo() {
+      alert("Crop Data Entry Form\nDeveloped by Muniyappan\nUses LocalStorage + Tamil Font Suntommy");
+    }
+
+    function editLast() {
+      if (entries.length === 0) return alert("No entries to edit!");
+      const last = entries.pop();
+      surveyNo.value = last.survey;
+      subDiv.value = last.subDiv;
+      month.value = last.month;
+      crop.value = last.crop;
+      area.value = last.area;
+    }
+
+    refreshTable();
+  </script>
+</body>
+</html>

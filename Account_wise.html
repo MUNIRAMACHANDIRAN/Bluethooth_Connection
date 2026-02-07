@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Month-wise Crop Subtotal Report with Abstracts</title>
+
+<!-- libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.3.1/docx.min.js"></script>
+
+<style>
+/* Local font - place suntommy.ttf alongside this HTML */
+@font-face {
+    font-family: 'suntommy';
+    src: url('suntommy.ttf') format('truetype');
+}
+body, table, th, td, h2, h3, select, input, button, label {
+    font-family: 'suntommy', Arial, sans-serif;
+}
+body { margin: 18px; background: #f6f6f6; color: #111; }
+h2 { color: #2e7d32; margin-bottom: 6px; }
+.controls { margin-bottom: 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.controls > * { margin: 2px; }
+input[type=file], select, button { padding: 6px 8px; border-radius: 4px; border: 1px solid #cfcfcf; background: white; }
+button { background: #4CAF50; color: white; cursor: pointer; border: none; }
+button.secondary { background: #1e88e5; }
+button.warn { background: #f57c00; }
+button:hover { opacity: 0.95; }
+table { border-collapse: collapse; width: 100%; background: #fff; margin-top: 10px; }
+th, td { border: 1px solid #bfbfbf; padding: 6px 8px; text-align: left; font-size: 12px; }
+th { background: #4CAF50; color: #fff; }
+.subtotal { background: #e8f5e9; font-weight: bold; }
+.monthtotal { background: #b2dfdb; font-weight: bold; }
+.grandtotal { background: #80cbc4; font-weight: bold; }
+.total-merged { text-align: right; font-weight: bold; padding-right: 10px; }
+.section { background: #fff; padding: 10px; margin-top: 12px; border: 1px solid #ddd; }
+.section h3 { margin: 4px 0 8px 0; }
+@media print {
+  .controls, .no-print { display:none !important; }
+  body { margin: 0; }
+  table { page-break-inside: avoid; }
+}
+.small { font-size: 12px; color: #444; }
+</style>
+</head>
+<body>
+
+<h2>Month-wise Crop Subtotal Report</h2>
+
+<div class="controls">
+  <input type="file" id="excelFile" accept=".xlsx, .xls">
+  <label for="monthSelect">Month:</label>
+  <select id="monthSelect" onchange="renderReport()">
+    <option value="">-- Select Month --</option>
+  </select>
+
+  <label for="accountSelect">Account No:</label>
+  <select id="accountSelect" onchange="renderReport()">
+    <option value="I">Account No. I</option>
+    <option value="II">Account No. II</option>
+    <option value="Both">Both</option>
+  </select>
+
+  <button onclick="exportOptions()">Export</button>
+  <button onclick="window.print()">🖨️ Print</button>
+  <button class="secondary" onclick="generateAbstracts()">Generate Abstracts</button>
+  <span class="small">After loading data, choose month & account, then Generate Abstracts.</span>
+</div>
+
+<!-- Main report table -->
+<div class="section" id="mainReportSection">
+  <h3>📋 Report Table</h3>
+  <table id="reportTable">
+    <thead>
+      <tr>
+        <th>Sl.No</th>
+        <th>Survey No</th>
+        <th>SubDivision</th>
+        <th>Month</th>
+        <th>Crop</th>
+        <th>Area</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- Account II consolidated table -->
+<div class="section" id="accountIISection" style="display:none;">
+  <h3>📊 Account No. II - Consolidated (Crop-wise per Month)</h3>
+  <table id="accountIITable">
+    <thead>
+      <tr>
+        <th>Month</th><th>Crop</th><th>Total Area</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- Abstract I visible area -->
+<div class="section" id="abstractI" style="display:none;">
+  <h3>Abstract - I</h3>
+  <div class="small">This summarizes area by category (e.g. Nanjai / Punjai / Puram / Block) if your data has a category column. Otherwise it shows crop-wise totals grouped into generic rows.</div>
+  <table id="abstractITable">
+    <thead>
+      <tr><th>Sl.No</th><th>Category</th><th>1st Crop</th><th>2nd Crop</th><th>Total</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot><tr><td colspan="2" style="text-align:right;font-weight:bold;">Grand Total</td><td id="absI-first" style="font-weight:bold;"></td><td id="absI-second" style="font-weight:bold;"></td><td id="absI-total" style="font-weight:bold;"></td></tr></tfoot>
+  </table>
+  <div style="margin-top:8px;">
+    <button onclick="printSection('abstractI')">Print Abstract I</button>
+  </div>
+</div>
+
+<!-- Abstract I-A visible area -->
+<div class="section" id="abstractIA" style="display:none;">
+  <h3>Abstract - I-A</h3>
+  <div class="small">This shows each crop (rows) and monthly totals + overall total for selected month(s).</div>
+  <table id="abstractIATable">
+    <thead>
+      <tr><th>Sl.No</th><th>Crop</th><th>Area</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot><tr class="grandtotal"><td colspan="2" style="text-align:right;font-weight:bold;">Grand Total</td><td id="absIA-total" style="font-weight:bold;"></td></tr></tfoot>
+  </table>
+  <div style="margin-top:8px;">
+    <button onclick="printSection('abstractIA')">Print Abstract I-A</button>
+  </div>
+</div>
+
+<script>
+let data = [];          // raw rows from sheet
+let columnMap = {};     // mapping found columns
+let monthsList = [];    // unique months
+
+// Utility: best match key
+function findKey(keys, search) {
+  search = search.toLowerCase();
+  return keys.find(k => k.toLowerCase().replace(/\s/g,'').includes(search));
+}
+
+// Load Excel
+document.getElementById('excelFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(event){
+    const workbook = XLSX.read(event.target.result, { type: 'binary' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {defval:''});
+    data = sheet;
+    if(data.length > 0){
+      const keys = Object.keys(data[0]);
+      // attempt mapping to columns used in script
+      columnMap = {
+        SlNo: findKey(keys,'sl') || keys[0],
+        SurveyNo: findKey(keys,'survey') || findKey(keys,'ser') || keys[1] || keys[0],
+        SubDivision: findKey(keys,'sub') || findKey(keys,'division') || keys[2] || keys[0],
+        Month: findKey(keys,'month') || findKey(keys,'mon') || keys[3] || keys[0],
+        Crop: findKey(keys,'crop') || findKey(keys,'cropy') || findKey(keys,'fj') || keys[4] || keys[0],
+        Area: findKey(keys,'area') || findKey(keys,'acre') || findKey(keys,'ha') || keys[5] || keys[0],
+        Category: findKey(keys,'category') || findKey(keys,'land') || findKey(keys,'nanjai') || findKey(keys,'punjai') || null,
+        AccountNo: findKey(keys,'account') || findKey(keys,'acc') || null
+      };
+    }
+    populateMonthSelect();
+    renderReport();
+  };
+  reader.readAsBinaryString(file);
+});
+
+// Populate month select
+function populateMonthSelect(){
+  const monthSelect = document.getElementById('monthSelect');
+  monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+  const months = [...new Set(data.map(r => r[columnMap.Month] || '').filter(v=>v!==''))];
+  // sort if numeric months
+  months.sort((a,b)=>{
+    const na = isNaN(a) ? a : Number(a);
+    const nb = isNaN(b) ? b : Number(b);
+    if(typeof na === 'number' && typeof nb === 'number') return na-nb;
+    return String(a).localeCompare(String(b));
+  });
+  months.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m;
+    monthSelect.appendChild(opt);
+  });
+  const allOpt = document.createElement('option');
+  allOpt.value = 'all';
+  allOpt.textContent = 'All Months';
+  monthSelect.appendChild(allOpt);
+  monthsList = months;
+}
+
+// Render main report and account II consolidated preview
+function renderReport(){
+  const tbody = document.querySelector("#reportTable tbody");
+  tbody.innerHTML = "";
+  const selectedMonth = document.getElementById('monthSelect').value;
+  const account = document.getElementById('accountSelect').value;
+
+  // filter by month if chosen
+  const filteredData = (selectedMonth && selectedMonth !== 'all') ? data.filter(r => r[columnMap.Month] == selectedMonth) : data.slice();
+
+  // Account I: survey-wise detailed (if selected or Both)
+  if(account === 'I' || account === 'Both') {
+    let sl = 1;
+    let grandTotal = 0;
+    filteredData.forEach(r=>{
+      const areaStr = (r[columnMap.Area] !== undefined && r[columnMap.Area] !== null) ? String(r[columnMap.Area]) : '';
+      const num = parseFloat((areaStr+'').toString().split('.').slice(0,2).join('.')) || 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${sl++}</td>
+                      <td>${r[columnMap.SurveyNo] || ''}</td>
+                      <td>${r[columnMap.SubDivision] || ''}</td>
+                      <td>${r[columnMap.Month] || ''}</td>
+                      <td>${r[columnMap.Crop] || ''}</td>
+                      <td>${areaStr}</td>`;
+      tbody.appendChild(tr);
+      grandTotal += num;
+    });
+    // grand total row
+    const trGrand = document.createElement('tr');
+    trGrand.className = 'grandtotal';
+    trGrand.innerHTML = `<td colspan="6" class="total-merged">Grand Total: ${grandTotal.toFixed(2)}</td>`;
+    tbody.appendChild(trGrand);
+  }
+
+  // If Account II or Both, compute consolidated crop-month totals and show preview
+  if(account === 'II' || account === 'Both') {
+    // build grouped totals: {month_crop: total}
+    const grouped = {};
+    filteredData.forEach(r=>{
+      const month = r[columnMap.Month] || '';
+      const crop = r[columnMap.Crop] || '';
+      const key = month + '||' + crop;
+      const areaStr = (r[columnMap.Area] !== undefined && r[columnMap.Area] !== null) ? String(r[columnMap.Area]) : '';
+      const num = parseFloat(areaStr.toString().split('.').slice(0,2).join('.')) || 0;
+      grouped[key] = (grouped[key] || 0) + num;
+    });
+
+    const accountIITable = document.querySelector("#accountIITable tbody");
+    accountIITable.innerHTML = "";
+    Object.keys(grouped).sort().forEach(k=>{
+      const [month, crop] = k.split('||');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${month}</td><td>${crop}</td><td>${grouped[k].toFixed(2)}</td>`;
+      accountIITable.appendChild(tr);
+    });
+    document.getElementById('accountIISection').style.display = 'block';
+  } else {
+    document.getElementById('accountIISection').style.display = 'none';
+  }
+
+  // If account is II only, hide main detailed table body content and show consolidation instead
+  if(account === 'II') {
+    // we can keep reportTable empty (already not filled) or keep the detailed rows removed. For clarity, remove detailed rows header only.
+    // We'll keep report table header but clear body (already cleared).
+  }
+}
+
+// Export options (CSV, PDF, Excel, Word)
+function exportOptions(){
+  const format = prompt("Enter export format: csv, pdf, xlsx, xls, word").toLowerCase();
+  if(!format) return;
+  if(format==='csv') exportCSV();
+  else if(format==='pdf') exportPDF();
+  else if(format==='xlsx'||format==='xls') exportExcel();
+  else if(format==='word') exportWord();
+  else alert("Invalid format!");
+}
+
+function exportCSV(){
+  let csv = [];
+  document.querySelectorAll("#reportTable tr").forEach(tr=>{
+    const row = Array.from(tr.querySelectorAll("th,td")).map(td=>td.textContent.replace(/,/g,''));
+    csv.push(row.join(","));
+  });
+  saveAs(new Blob([csv.join("\n")], {type: "text/csv;charset=utf-8"}),"Report.csv");
+}
+
+function exportExcel(){
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.table_to_sheet(document.getElementById('reportTable'));
+  XLSX.utils.book_append_sheet(wb, ws, "Report");
+  XLSX.writeFile(wb, "Report.xlsx");
+}
+
+// PDF with local font embedding placeholder
+function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // If you want to embed your TTF into the PDF, convert the TTF to base64 and replace below.
+  // doc.addFileToVFS("suntommy.ttf", "<BASE64_STRING_HERE>");
+  // doc.addFont("suntommy.ttf", "suntommy", "normal");
+  // doc.setFont("suntommy");
+
+  const selectedMonth = document.getElementById('monthSelect').value;
+  let startY = 15;
+  doc.setFontSize(14);
+  doc.text(selectedMonth && selectedMonth!=='all' ? selectedMonth + " Month Crop Details" : "Month-wise Crop Subtotal Report", 14, startY);
+  startY += 10;
+
+  const rows = [];
+  document.querySelectorAll("#reportTable tbody tr").forEach(tr=>{
+    const cols = tr.querySelectorAll("td");
+    if(cols.length===0) return;
+    const rowData = Array.from(cols).map(td=>td.textContent);
+    rows.push(rowData);
+  });
+
+  doc.autoTable({
+    head: [["Sl.No","Survey No","SubDivision","Month","Crop","Area"]],
+    body: rows,
+    startY: startY
+  });
+  doc.save("Report.pdf");
+}
+
+// Word export
+function exportWord(){
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } = docx;
+  const doc = new Document();
+  const tableRows = [];
+  document.querySelectorAll("#reportTable tr").forEach(tr=>{
+    const cells = Array.from(tr.querySelectorAll("th,td")).map(td=>new TableCell({children:[new Paragraph({children:[new TextRun({text: td.textContent})]})]}));
+    tableRows.push(new TableRow({children: cells}));
+  });
+  doc.addSection({children:[new Table({rows: tableRows})]});
+  Packer.toBlob(doc).then(blob=>saveAs(blob,"Report.docx"));
+}
+
+// -----------------------------
+// Abstract generation functions
+// -----------------------------
+
+// Generate visible abstracts below the report
+function generateAbstracts(){
+  // show/hide abstract sections
+  document.getElementById('abstractI').style.display = 'block';
+  document.getElementById('abstractIA').style.display = 'block';
+  populateAbstractI();
+  populateAbstractIA();
+}
+
+// Abstract I: try to sum by Category (Nanjai/Punjai/Puram/Block) if available
+function populateAbstractI(){
+  const tbody = document.querySelector("#abstractITable tbody");
+  tbody.innerHTML = "";
+
+  const selectedMonth = document.getElementById('monthSelect').value;
+  const filtered = (selectedMonth && selectedMonth!=='all') ? data.filter(r => r[columnMap.Month] == selectedMonth) : data.slice();
+
+  // Determine category column: prefer found mapping, else try to infer from SubDivision or Crop
+  const catKey = columnMap.Category || null;
+  let categories = [];
+
+  if(catKey) {
+    categories = [...new Set(filtered.map(r => r[catKey] || '').filter(v=>v!==''))];
+  } else {
+    // fallback: look for 'nanjai'/'punjai' terms in SubDivision or Crop
+    const possibleCats = ['Nanjai','Punjai','Puram','Block','நஞ்சை','புஞ்சை','புரம்','ப்லாக்'];
+    const found = new Set();
+    filtered.forEach(r => {
+      const sub = String(r[columnMap.SubDivision] || '').toLowerCase();
+      const crop = String(r[columnMap.Crop] || '').toLowerCase();
+      possibleCats.forEach(pc => {
+        if(sub.includes(pc.toLowerCase()) || crop.includes(pc.toLowerCase())) found.add(pc);
+      });
+    });
+    categories = Array.from(found);
+  }
+
+  // If still empty, create generic categories from unique crops / or show default rows from your sample
+  if(categories.length === 0) {
+    // list default Tamil categories the user showed (keeps structure even if empty)
+    categories = ['நற்செய்','புஞ்செய்','தீ.ர.த','புறம்பைக் குறிப்பு','புஞ்செய் (போரிகால்)','மொத்தம்'];
+    // but we'll actually compute by unique crops if needed below
+  }
+
+  // For each category, compute 1st crop, 2nd crop, total (best effort)
+  let idx = 1;
+  let grandFirst = 0, grandSecond = 0, grandTotal = 0;
+
+  categories.forEach(cat => {
+    // find rows that appear to belong to this category
+    let rowsForCat = [];
+    if(catKey) rowsForCat = filtered.filter(r => (r[catKey]||'') == cat);
+    else {
+      // match using substring match
+      rowsForCat = filtered.filter(r => {
+        const s = String(r[columnMap.SubDivision] || '') + ' ' + String(r[columnMap.Crop] || '');
+        return s.toLowerCase().includes(String(cat).toLowerCase());
+      });
+    }
+
+    // best-effort: assume earliest crop entry within this category is "1st", next distinct is "2nd", rest sum to total
+    const cropMap = {};
+    rowsForCat.forEach(r=>{
+      const crop = (r[columnMap.Crop] || '').toString().trim() || 'UNKNOWN';
+      const areaStr = (r[columnMap.Area] !== undefined && r[columnMap.Area] !== null) ? String(r[columnMap.Area]) : '';
+      const num = parseFloat(areaStr.toString().split('.').slice(0,2).join('.')) || 0;
+      cropMap[crop] = (cropMap[crop] || 0) + num;
+    });
+
+    const cropNames = Object.keys(cropMap);
+    let firstVal = 0, secondVal = 0, totalVal = 0;
+    if(cropNames.length === 0) {
+      firstVal = 0; secondVal = 0; totalVal = 0;
+    } else if(cropNames.length === 1) {
+      firstVal = cropMap[cropNames[0]];
+      secondVal = 0;
+      totalVal = firstVal;
+    } else {
+      // pick top two crops by area as 1st and 2nd
+      const ordered = cropNames.sort((a,b)=>cropMap[b]-cropMap[a]);
+      firstVal = cropMap[ordered[0]];
+      secondVal = cropMap[ordered[1]] || 0;
+      totalVal = Object.values(cropMap).reduce((s,v)=>s+v,0);
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${idx++}</td><td>${cat}</td><td>${firstVal.toFixed(2)}</td><td>${secondVal.toFixed(2)}</td><td>${totalVal.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+
+    grandFirst += firstVal;
+    grandSecond += secondVal;
+    grandTotal += totalVal;
+  });
+
+  document.getElementById('absI-first').textContent = grandFirst.toFixed(2);
+  document.getElementById('absI-second').textContent = grandSecond.toFixed(2);
+  document.getElementById('absI-total').textContent = grandTotal.toFixed(2);
+}
+
+// Abstract I-A: show each crop as a row and total area (month-filtered)
+function populateAbstractIA(){
+  const tbody = document.querySelector("#abstractIATable tbody");
+  tbody.innerHTML = "";
+
+  const selectedMonth = document.getElementById('monthSelect').value;
+  const filtered = (selectedMonth && selectedMonth!=='all') ? data.filter(r => r[columnMap.Month] == selectedMonth) : data.slice();
+
+  // group by crop
+  const cropTotals = {};
+  filtered.forEach(r=>{
+    const crop = r[columnMap.Crop] || 'UNKNOWN';
+    const areaStr = (r[columnMap.Area] !== undefined && r[columnMap.Area] !== null) ? String(r[columnMap.Area]) : '';
+    const num = parseFloat(areaStr.toString().split('.').slice(0,2).join('.')) || 0;
+    cropTotals[crop] = (cropTotals[crop] || 0) + num;
+  });
+
+  let idx = 1;
+  let grand = 0;
+  Object.keys(cropTotals).sort().forEach(crop=>{
+    const val = cropTotals[crop];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${idx++}</td><td>${crop}</td><td>${val.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+    grand += val;
+  });
+
+  document.getElementById('absIA-total').textContent = grand.toFixed(2);
+}
+
+// print a specific section by id
+function printSection(id){
+  // open new window with section content to preserve layout & font
+  const el = document.getElementById(id);
+  if(!el) { window.print(); return; }
+
+  const style = `<style>
+    @font-face { font-family: 'suntommy'; src: url('suntommy.ttf') format('truetype'); }
+    body{ font-family: 'suntommy', Arial, sans-serif; margin:12px; }
+    table{ border-collapse: collapse; width:100%; }
+    th,td{ border:1px solid #666; padding:6px; text-align:left; }
+    th{ background:#4CAF50; color:#fff; }
+  </style>`;
+
+  const newWin = window.open('', '_blank', 'width=900,height=700');
+  newWin.document.write('<html><head><title>Print</title>' + style + '</head><body>');
+  newWin.document.write(el.outerHTML);
+  newWin.document.write('</body></html>');
+  newWin.document.close();
+  // delay print slightly to allow fonts to load locally
+  newWin.focus();
+  setTimeout(()=>{ newWin.print(); }, 500);
+}
+</script>
+
+</body>
+</html>

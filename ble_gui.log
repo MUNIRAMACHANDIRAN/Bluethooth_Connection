@@ -1,0 +1,421 @@
+2025-09-30 10:56:42,612 [INFO] BLE-GUI: WindowsSelectorEventLoopPolicy set.
+2025-09-30 10:56:42,694 [INFO] BLE-GUI: AsyncioRunner started.
+2025-09-30 10:56:45,789 [INFO] BLE-GUI: Scan started.
+2025-09-30 10:56:54,960 [INFO] BLE-GUI: Scan stopped.
+2025-09-30 10:57:02,898 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 136, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+2025-09-30 10:57:02,945 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 136, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 154, in disconnect
+    await self.client.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError
+2025-09-30 10:57:17,528 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 136, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+2025-09-30 10:57:17,530 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 136, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 154, in disconnect
+    await self.client.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError
+2025-09-30 10:57:29,320 [INFO] BLE-GUI: Connected.
+2025-09-30 11:02:35,070 [INFO] BLE-GUI: Disconnected.
+2025-09-30 11:02:40,397 [INFO] BLE-GUI: WindowsSelectorEventLoopPolicy set.
+2025-09-30 11:02:40,473 [INFO] BLE-GUI: AsyncioRunner started.
+2025-09-30 11:02:42,729 [INFO] BLE-GUI: Scan started.
+2025-09-30 11:02:46,649 [INFO] BLE-GUI: Scan stopped.
+2025-09-30 11:02:50,712 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+2025-09-30 11:02:50,712 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 157, in disconnect
+    await self.client.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError
+2025-09-30 11:03:15,508 [INFO] BLE-GUI: Connected.
+2025-09-30 11:04:40,007 [INFO] BLE-GUI: Scan started.
+2025-09-30 11:04:53,055 [INFO] BLE-GUI: Scan stopped.
+2025-09-30 11:05:10,042 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+2025-09-30 11:05:10,042 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 157, in disconnect
+    await self.client.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError
+2025-09-30 11:05:19,280 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+2025-09-30 11:05:19,282 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\new_blue.py", line 157, in disconnect
+    await self.client.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError
+2025-09-30 11:05:29,438 [INFO] BLE-GUI: Connected.
+2025-09-30 11:06:02,118 [INFO] BLE-GUI: Disconnected.
+2025-10-24 17:11:42,216 [INFO] BLE-GUI: WindowsSelectorEventLoopPolicy set.
+2025-10-24 17:11:43,137 [INFO] BLE-GUI: AsyncioRunner started.
+2025-10-24 17:12:41,207 [INFO] BLE-GUI: Scan started.
+2025-10-24 17:12:56,223 [INFO] BLE-GUI: Scan stopped.
+2025-10-27 11:44:55,704 [INFO] BLE-GUI: WindowsSelectorEventLoopPolicy set.
+2025-10-27 11:44:55,824 [INFO] BLE-GUI: AsyncioRunner started.
+2025-10-27 11:44:58,409 [INFO] BLE-GUI: Scan started.
+2025-10-27 11:46:00,627 [INFO] BLE-GUI: Scan stopped.
+2025-10-27 11:46:21,071 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 705, in _get_services
+    result = await FutureLike(self._requester.get_gatt_services_async())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 1168, in __await__
+    yield self  # This tells Task to wait for completion.
+    ^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 1102, in result
+    raise asyncio.CancelledError
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 399, in connect
+    async with async_timeout(timeout):
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\asyncio\timeouts.py", line 115, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+2025-10-27 11:46:21,087 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 705, in _get_services
+    result = await FutureLike(self._requester.get_gatt_services_async())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 1168, in __await__
+    yield self  # This tells Task to wait for completion.
+    ^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 1102, in result
+    raise asyncio.CancelledError
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 399, in connect
+    async with async_timeout(timeout):
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\muniyapan.r\AppData\Local\Programs\Python\Python312\Lib\asyncio\timeouts.py", line 115, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 157, in disconnect
+    await self.client.disconnect()
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError
+2025-10-27 11:46:33,772 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 240, in connect
+    raise BleakDeviceNotFoundError(
+bleak.exc.BleakDeviceNotFoundError: Device with address 6C:8C:55:58:41:4C was not found.
+2025-10-27 11:46:33,776 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 240, in connect
+    raise BleakDeviceNotFoundError(
+bleak.exc.BleakDeviceNotFoundError: Device with address 6C:8C:55:58:41:4C was not found.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 157, in disconnect
+    await self.client.disconnect()
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError
+2025-10-27 11:46:43,743 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 139, in connect
+    if not self.client.is_connected:
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'is_connected'
+2025-10-27 11:46:56,561 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+2025-10-27 11:46:56,561 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 157, in disconnect
+    await self.client.disconnect()
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError
+2025-10-27 11:47:16,782 [ERROR] BLE-GUI: Connect failed
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+2025-10-27 11:47:16,784 [ERROR] BLE-GUI: Error on disconnect
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 138, in connect
+    await self.client.connect(timeout=15.0)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 580, in connect
+    await self._backend.connect(self._pair_before_connect, **kwargs)
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 443, in connect
+    self.services = await self._get_services(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 707, in _get_services
+    services = _ensure_success(
+               ^^^^^^^^^^^^^^^^
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 145, in _ensure_success
+    raise BleakError(f"{fail_msg}: Unreachable")
+bleak.exc.BleakError: Could not get GATT services: Unreachable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\New folder\pythonproj\new_blue.py", line 157, in disconnect
+    await self.client.disconnect()
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\__init__.py", line 588, in disconnect
+    await self._backend.disconnect()
+  File "C:\New folder\pythonproj\venv\Lib\site-packages\bleak\backends\winrt\client.py", line 468, in disconnect
+    assert self.services
+           ^^^^^^^^^^^^^
+AssertionError

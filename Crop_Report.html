@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crop / Month Report (Account 1 & 1a)</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#f7f9fb;color:#111}
+    h1{font-size:20px;margin-bottom:4px}
+    .container{max-width:1200px;margin:0 auto;background:#fff;padding:16px;border-radius:8px;box-shadow:0 6px 18px rgba(16,24,40,0.06)}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    label{display:block;font-size:13px;margin-bottom:6px}
+    input[type=file]{padding:6px}
+    select,input,button,textarea{padding:8px;border:1px solid #d1d5db;border-radius:6px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border:1px solid #e6e9ef;padding:6px;text-align:left;font-size:13px}
+    thead{background:#f1f5f9}
+    .controls{display:flex;gap:8px;align-items:center}
+    .btn{cursor:pointer;border:none;padding:8px 10px;border-radius:6px}
+    .btn-primary{background:#0b69ff;color:#fff}
+    .btn-ghost{background:#eef2ff}
+    .summary{margin-top:12px;padding:10px;border-radius:6px;background:#f8fafc}
+    pre{white-space:pre-wrap}
+    .small{font-size:12px;color:#334155}
+    .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    @media (max-width:900px){.form-grid{grid-template-columns:repeat(2,1fr)}}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Crop / Month Report — Accounts 1 &amp; 1a</h1>
+    <p class="small">Upload an Excel file (first sheet is read). The sheet should contain at least these columns (case-insensitive): <strong>AccountNo</strong>, <strong>SurveyNo</strong>, <strong>SubDivision</strong>, <strong>Month</strong>, <strong>Crop</strong>, <strong>Area</strong>. You can map columns if names differ.</p>
+
+    <div class="row">
+      <div>
+        <label>Upload Excel (.xlsx / .xls)</label>
+        <input id="file-input" type="file" accept=".xlsx,.xls" />
+      </div>
+      <div>
+        <label>Sheet (optional)</label>
+        <input id="sheet-name" placeholder="leave blank for first sheet" />
+      </div>
+      <div style="min-width:180px">
+        <label>Detected columns (choose mapping)</label>
+        <div id="mapping-area" class="small">No file loaded</div>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end">
+        <button class="btn btn-primary" id="load-sample">Load sample data</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div style="flex:1">
+        <label>Filters</label>
+        <div class="controls">
+          <select id="filter-account">
+            <option value="">All Accounts</option>
+            <option value="1">Account 1</option>
+            <option value="1a">Account 1a</option>
+          </select>
+          <select id="filter-month"><option value="">All Months</option></select>
+          <select id="filter-crop"><option value="">All Crops</option></select>
+          <button id="apply-filters" class="btn btn-ghost">Apply</button>
+        </div>
+      </div>
+
+      <div style="min-width:340px;text-align:right">
+        <label>&nbsp;</label>
+        <div class="controls" style="justify-content:flex-end">
+          <button id="gen-account1" class="btn btn-primary">Generate Account 1 (all data)</button>
+          <button id="gen-account1a" class="btn btn-ghost">Generate Account 1a (crop × month)</button>
+          <button id="export-report" class="btn">Export XLSX</button>
+          <button id="print-report" class="btn">Print</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:8px">
+      <strong>Add / Edit Entry</strong>
+      <div class="form-grid" style="margin-top:8px">
+        <input id="new-account" placeholder="AccountNo (e.g. 1 or 1a)" />
+        <input id="new-survey" placeholder="SurveyNo" />
+        <input id="new-subdivision" placeholder="SubDivision" />
+        <input id="new-month" placeholder="Month (1-12 or Jan/January)" />
+        <input id="new-crop" placeholder="Crop" />
+        <input id="new-area" placeholder="Area (e.g. 0.07)" />
+        <div style="grid-column:1 / -1;display:flex;gap:8px">
+          <button id="add-entry" class="btn btn-primary">Save Entry (adds to data)</button>
+          <button id="download-updated" class="btn">Download Updated Excel</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="report-area">
+      <div id="report-summary" class="summary"></div>
+      <div id="report-table"></div>
+    </div>
+
+  </div>
+
+<script>
+  // State
+  let rawData = [] // array of objects
+  let headers = []
+
+  const fileInput = document.getElementById('file-input')
+  const mappingArea = document.getElementById('mapping-area')
+  const sheetNameInput = document.getElementById('sheet-name')
+  const filterMonth = document.getElementById('filter-month')
+  const filterCrop = document.getElementById('filter-crop')
+  const filterAccount = document.getElementById('filter-account')
+  const reportTable = document.getElementById('report-table')
+  const reportSummary = document.getElementById('report-summary')
+
+  // Helper: robustly parse area values
+  function parseArea(v){
+    if(v===null||v===undefined) return 0
+    if(typeof v==='number') return v
+    // remove any non-digit except dot and minus
+    const s = String(v).replace(/[^0-9.-]+/g,'')
+    const n = parseFloat(s)
+    return isNaN(n)?0:n
+  }
+
+  function normalizeMonth(m){
+    if(m===null||m===undefined) return ''
+    m = String(m).trim()
+    if(!m) return ''
+    // if numeric
+    if(/^\d+$/.test(m)){
+      const n = parseInt(m,10)
+      if(n>=1 && n<=12) return String(n)
+      return String(n)
+    }
+    const map = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12}
+    const short = m.toLowerCase().slice(0,3)
+    if(map[short]) return String(map[short])
+    return m
+  }
+
+  function refreshFilters(){
+    const months = new Set()
+    const crops = new Set()
+    rawData.forEach(r=>{ months.add(normalizeMonth(r.Month)); crops.add(String(r.Crop||'').trim()) })
+    const monthsArr = Array.from(months).filter(x=>x!=='').sort((a,b)=>Number(a)-Number(b))
+    filterMonth.innerHTML = '<option value="">All Months</option>' + monthsArr.map(m=>`<option value="${m}">${m}</option>`).join('')
+    const cropsArr = Array.from(crops).filter(x=>x!=='').sort()
+    filterCrop.innerHTML = '<option value="">All Crops</option>' + cropsArr.map(c=>`<option value="${c}">${c}</option>`).join('')
+  }
+
+  function renderMapping(){
+    mappingArea.innerHTML = headers.length ? '<div class="small">Columns detected: <strong>' + headers.join(', ') + '</strong></div>' : 'No file loaded'
+  }
+
+  function renderTable(data){
+    if(!data || data.length===0){ reportTable.innerHTML = '<p class="small">No rows to show.</p>'; return }
+    const cols = Object.keys(data[0])
+    const thead = '<thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead>'
+    const tbody = '<tbody>' + data.map(r=>'<tr>' + cols.map(c=>`<td>${r[c]===undefined?'':r[c]}</td>`).join('') + '</tr>').join('') + '</tbody>'
+    reportTable.innerHTML = '<table>' + thead + tbody + '</table>'
+  }
+
+  function showSummary(text){ reportSummary.innerHTML = '<pre>' + text + '</pre>' }
+
+  // Generate Account 1: all data or filtered dataset
+  function generateAccount1(){
+    const acctFilter = filterAccount.value
+    const month = filterMonth.value
+    const crop = filterCrop.value
+    let rows = rawData.slice()
+    if(acctFilter){
+      // allow account '1' matches '1' or '1A' exact? We'll match case-insensitive
+      rows = rows.filter(r=>String(r.AccountNo||'').toLowerCase() === String(acctFilter).toLowerCase())
+    }
+    if(month) rows = rows.filter(r=>normalizeMonth(r.Month)===String(month))
+    if(crop) rows = rows.filter(r=>String(r.Crop||'')===crop)
+    renderTable(rows)
+    // generate a short abstract for each month present in rows
+    const byMonth = {}
+    rows.forEach(r=>{
+      const m = normalizeMonth(r.Month)||'Unknown'
+      byMonth[m] = byMonth[m] || {count:0,area:0}
+      byMonth[m].count += 1
+      byMonth[m].area += parseArea(r.Area)
+    })
+    const lines = ['Account 1 Summary (per month):']
+    Object.keys(byMonth).sort((a,b)=>Number(a)-Number(b)).forEach(m=> lines.push(`Month ${m}: rows=${byMonth[m].count}, total area=${Number(byMonth[m].area.toFixed(4))}`))
+    showSummary(lines.join('\n'))
+  }
+
+  // Generate Account 1a: crop × month pivot (sum of area)
+  function generateAccount1a(){
+    const monthFilter = filterMonth.value
+    const cropFilter = filterCrop.value
+    // consider rows for Account 1a OR all data then pivot per Crop (as specified by user: 1a = crop wise month wise abstract). We'll consider all rows then produce pivot.
+    const rows = rawData.slice().filter(r=>{
+      if(monthFilter && normalizeMonth(r.Month)!==String(monthFilter)) return false
+      if(cropFilter && String(r.Crop||'')!==cropFilter) return false
+      return true
+    })
+    // build pivot: rows = Crop, columns = month numbers 1..12 present
+    const monthsSet = new Set();
+    const pivot = {} // pivot[crop][month] = sum
+    rows.forEach(r=>{
+      const crop = String(r.Crop||'Unknown')
+      const m = normalizeMonth(r.Month)||'Unknown'
+      monthsSet.add(m)
+      pivot[crop] = pivot[crop] || {}
+      pivot[crop][m] = (pivot[crop][m]||0) + parseArea(r.Area)
+    })
+    const months = Array.from(monthsSet).filter(x=>x!=='Unknown').sort((a,b)=>Number(a)-Number(b))
+    if(monthsSet.has('Unknown')) months.push('Unknown')
+
+    // Build table data
+    const cols = ['Crop', ...months, 'Total']
+    const tableRows = Object.keys(pivot).sort().map(crop=>{
+      const row = {Crop: crop}
+      let total = 0
+      months.forEach(m=>{
+        const v = pivot[crop][m]||0
+        row[m] = Number(v.toFixed(4))
+        total += v
+      })
+      row.Total = Number(total.toFixed(4))
+      return row
+    })
+
+    if(tableRows.length===0){ renderTable([]); showSummary('No data for Account 1a'); return }
+    // render as table
+    const thead = '<thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead>'
+    const tbody = '<tbody>' + tableRows.map(r=>'<tr>' + cols.map(c=>`<td>${r[c]===undefined?'':r[c]}</td>`).join('') + '</tr>').join('') + '</tbody>'
+    reportTable.innerHTML = '<table>' + thead + tbody + '</table>'
+
+    // summary: month totals
+    const monthTotals = {}
+    months.forEach(m=> monthTotals[m]=0)
+    tableRows.forEach(r=> months.forEach(m=> monthTotals[m]+= Number(r[m]||0)))
+    const lines = ['Account 1a — Crop × Month summary:']
+    months.forEach(m=> lines.push(`Month ${m}: total area = ${Number(monthTotals[m].toFixed(4))}`))
+    showSummary(lines.join('\n'))
+  }
+
+  // Export the currently visible report (reportTable DOM) as xlsx
+  function exportCurrentReport(){
+    // try to read from reportTable table
+    const tbl = reportTable.querySelector('table')
+    if(!tbl){ alert('No report visible to export') ; return }
+    const wb = XLSX.utils.table_to_book(tbl, {sheet:"Report"})
+    XLSX.writeFile(wb, 'report.xlsx')
+  }
+
+  // Download full updated raw data as excel
+  function downloadUpdated(){
+    if(rawData.length===0){ alert('No data to download'); return }
+    const ws = XLSX.utils.json_to_sheet(rawData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'data')
+    XLSX.writeFile(wb, 'data-updated.xlsx')
+  }
+
+  // Add new entry from form
+  document.getElementById('add-entry').addEventListener('click', ()=>{
+    const obj = {
+      AccountNo: document.getElementById('new-account').value.trim(),
+      SurveyNo: document.getElementById('new-survey').value.trim(),
+      SubDivision: document.getElementById('new-subdivision').value.trim(),
+      Month: document.getElementById('new-month').value.trim(),
+      Crop: document.getElementById('new-crop').value.trim(),
+      Area: document.getElementById('new-area').value.trim(),
+    }
+    if(!obj.AccountNo){ alert('Please provide AccountNo'); return }
+    rawData.push(obj)
+    refreshFilters()
+    renderTable(rawData.slice(-20))
+    showSummary('Entry added. Use Download Updated Excel to save changes.')
+  })
+
+  document.getElementById('download-updated').addEventListener('click', downloadUpdated)
+
+  document.getElementById('gen-account1').addEventListener('click', generateAccount1)
+  document.getElementById('gen-account1a').addEventListener('click', generateAccount1a)
+  document.getElementById('export-report').addEventListener('click', exportCurrentReport)
+  document.getElementById('print-report').addEventListener('click', ()=>{ window.print() })
+  document.getElementById('apply-filters').addEventListener('click', ()=>{
+    // by default show filtered rawData
+    const month = filterMonth.value
+    const crop = filterCrop.value
+    let rows = rawData.slice()
+    if(month) rows = rows.filter(r=>normalizeMonth(r.Month)===String(month))
+    if(crop) rows = rows.filter(r=>String(r.Crop||'')===crop)
+    renderTable(rows)
+    showSummary(`Showing ${rows.length} rows (filters applied).`)
+  })
+
+  // File input handling
+  fileInput.addEventListener('change', e=>{
+    const f = e.target.files[0]
+    if(!f) return
+    const reader = new FileReader()
+    reader.onload = function(ev){
+      const data = new Uint8Array(ev.target.result)
+      const wb = XLSX.read(data, {type:'array'})
+      const sheetName = sheetNameInput.value.trim() || wb.SheetNames[0]
+      const ws = wb.Sheets[sheetName]
+      if(!ws){ alert('Sheet "'+sheetName+'" not found. Available: '+wb.SheetNames.join(',')); return }
+      const json = XLSX.utils.sheet_to_json(ws, {defval:''})
+      rawData = json.map(r=>{
+        // normalize keys to desired names while preserving original keys
+        const copy = {}
+        // find keys case-insensitively
+        function find(kCandidates){
+          for(const k of Object.keys(r)){
+            if(kCandidates.map(x=>x.toLowerCase()).includes(k.toLowerCase())) return r[k]
+          }
+          return ''
+        }
+        copy.AccountNo = r.AccountNo || r.Account || find(['AccountNo','Account','Acct'])
+        copy.SurveyNo = r.SurveyNo || r.Survey || find(['SurveyNo','Survey'])
+        copy.SubDivision = r.SubDivision || r.SubDivision || find(['SubDivision','Subdivision','Sub Division'])
+        copy.Month = r.Month || find(['Month','Mon'])
+        copy.Crop = r.Crop || find(['Crop','CropName'])
+        copy.Area = r.Area || find(['Area','AreaHa','Area_Ha','Area (Ha)'])
+        // keep original other keys too
+        Object.keys(r).forEach(k=>{ if(!['AccountNo','Account','Acct','SurveyNo','Survey','SubDivision','Subdivision','Month','Mon','Crop','CropName','Area','AreaHa','Area_Ha','Area (Ha)'].includes(k)) copy[k]=r[k] })
+        return copy
+      })
+      headers = rawData.length ? Object.keys(rawData[0]) : []
+      renderMapping()
+      refreshFilters()
+      renderTable(rawData.slice(0,100))
+      showSummary('Loaded '+rawData.length+' rows. Showing first 100 rows.')
+    }
+    reader.readAsArrayBuffer(f)
+  })
+
+  // Sample data loader for quick testing
+  document.getElementById('load-sample').addEventListener('click', ()=>{
+    rawData = [
+      {AccountNo:'1',SurveyNo:'127',SubDivision:'2',Month:'1',Crop:'Rice',Area:'0.07'},
+      {AccountNo:'1',SurveyNo:'127',SubDivision:'8',Month:'1',Crop:'Rice',Area:'0.14'},
+      {AccountNo:'1',SurveyNo:'127',SubDivision:'10A',Month:'1',Crop:'Wheat',Area:'0.05'},
+      {AccountNo:'1a',SurveyNo:'128',SubDivision:'1K',Month:'2',Crop:'Maize',Area:'0.2'},
+      {AccountNo:'1',SurveyNo:'129',SubDivision:'3',Month:'2',Crop:'Rice',Area:'0.12'},
+    ]
+    headers = Object.keys(rawData[0])
+    renderMapping(); refreshFilters(); renderTable(rawData); showSummary('Sample data loaded')
+  })
+
+  // Print helper for nicer prints (optional)
+  window.onbeforeprint = function(){ document.body.style.background='white' }
+  window.onafterprint = function(){ document.body.style.background='' }
+
+</script>
+</body>
+</html>
